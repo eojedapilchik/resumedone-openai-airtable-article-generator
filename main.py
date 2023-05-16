@@ -30,6 +30,16 @@ async def get_test(background_tasks: BackgroundTasks, article: Article):
         return {"status": "missing data"}
 
 
+@app.get("/article-texts/")
+async def get_test(background_tasks: BackgroundTasks, record_id: str = None, job_name: str = None, language: str = 'EN'):
+    if record_id and job_name:
+        article = Article(record_id=record_id, job_name=job_name)
+        background_tasks.add_task(process_article, article)
+        return {"status": "processing AI generated sections for article: " + job_name}
+    else:
+        return {"status": "missing data"}
+
+
 def process_article(article: Article):
     start_time = time.time()
     prompts = get_prompts(article.language)
@@ -66,16 +76,16 @@ def process_prompts(prompts: list):
         for i in range(retries):
             index += 1
             try:
-                print(f" - Processing prompt...{index}")
+                print(f" - Processing prompt...{i} -> Attempt {index}/{retries}")
                 response = openai_handler.prompt(prompt)
-                print(f"[+] Received response from OpenAI {index}")
+                print(f"[+] Received response from OpenAI {i}")
                 responses.append(response)
                 break
             except OpenAIException as e:
                 print("Error: " + str(e))
                 if i < retries - 1:  # i is zero indexed
                     time.sleep((2 ** i))  # exponential backoff, sleep for 2^i seconds
-                    print(f"Retrying OpenAI request. Attempt #{i}...")
+                    print(f"Retrying OpenAI request...")
                     continue
                 else:
                     print("OpenAI request failed after " + str(retries) + " attempts.")
