@@ -55,11 +55,15 @@ def process_article(article: Article):
         {**prompt, "prompt": prompt["prompt"].replace("[job_name]", article.job_name)}
         for prompt in prompts
     ]
+    # for prompt in parsed_prompts:
+    #     print(prompt)
+    #     print("\n\n")
     responses = process_prompts(parsed_prompts)
     if responses is None:
         print("No responses found")
         return None
-    update_airtable_record(article.record_id, responses)
+    sorted_responses = sorted(responses, key=lambda x: x["position"])
+    update_airtable_record(article.record_id, sorted_responses)
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Elapsed time: {elapsed_time} seconds")
@@ -71,7 +75,8 @@ def get_prompts(language: str = 'EN'):
     if records:
         prompts = [{
             "section": record.get("fields").get("Section Name"),
-            "prompt": record.get("fields").get(f"Prompt {language}")
+            "prompt": record.get("fields").get(f"Prompt {language}"),
+            "position": record.get("fields").get("Position")
         } for record in records]
         return prompts
     return None
@@ -80,7 +85,6 @@ def get_prompts(language: str = 'EN'):
 def process_prompts(prompts: list):
     retries = int(os.getenv("OPENAI_RETRIES", 3))
     openai_handler = OpenAIHandler()
-    responses = []
     index = 0
     for prompt in prompts:
         index += 1
@@ -89,7 +93,7 @@ def process_prompts(prompts: list):
                 print(f" - Processing prompt...{index} -> Attempt {i+1}/{retries}")
                 response = openai_handler.prompt(prompt.get("prompt"))
                 print(f"[+] Received response from OpenAI {index}")
-                responses.append(f"\n\n  [{prompt.get('section', '')}] \n {response}\n\n")
+                prompt["response"] = f"\n\n {response}\n\n"
                 break
             except OpenAIException as e:
                 print("Error: " + str(e))
@@ -99,8 +103,8 @@ def process_prompts(prompts: list):
                     continue
                 else:
                     print("OpenAI request failed after " + str(retries) + " attempts.")
-                    responses.append(f"\n\n  [{prompt.get('section', '')}] \n *NO CONTENT WAS GENERATED* \n\n")
-    return responses
+                    prompt["response"] = f"\n\n *NO CONTENT WAS GENERATED FOR SECTION {prompt['section']}* \n\n"
+    return prompts
 
 
 def update_airtable_record(record_id, responses):
