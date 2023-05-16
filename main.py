@@ -13,6 +13,7 @@ load_dotenv()
 
 prompts_table = os.environ.get("TABLE_PROMPTS")
 data_table = os.environ.get("TABLE_DATA")
+show_debug = os.environ.get("SHOW_DEBUG") == "True"
 
 
 class Article(BaseModel):
@@ -31,7 +32,8 @@ async def get_test(background_tasks: BackgroundTasks, article: Article):
 
 
 @app.get("/article-texts/")
-async def get_test(background_tasks: BackgroundTasks, record_id: str = None, job_name: str = None, language: str = 'EN'):
+async def get_test(background_tasks: BackgroundTasks, record_id: str = None, job_name: str = None,
+                   language: str = 'EN'):
     if record_id and job_name:
         article = Article(record_id=record_id, job_name=job_name)
         background_tasks.add_task(process_article, article)
@@ -63,6 +65,7 @@ def process_article(article: Article):
         print("No responses found")
         return None
     sorted_responses = sorted(responses, key=lambda x: x["position"])
+    print(sorted_responses)
     update_airtable_record(article.record_id, sorted_responses)
     end_time = time.time()
     elapsed_time = end_time - start_time
@@ -90,9 +93,11 @@ def process_prompts(prompts: list):
         index += 1
         for i in range(retries):
             try:
-                print(f" - Processing prompt...{index} -> Attempt {i+1}/{retries}")
+                print(f" - Processing prompt...{index} -> Attempt {i + 1}/{retries}")
                 response = openai_handler.prompt(prompt.get("prompt"))
                 print(f"[+] Received response from OpenAI {index}")
+                if show_debug:
+                    print(f"\n\n {response} \n\n")
                 prompt["response"] = f"\n\n {response}\n\n"
                 break
             except OpenAIException as e:
@@ -107,12 +112,13 @@ def process_prompts(prompts: list):
     return prompts
 
 
-def update_airtable_record(record_id, responses):
+def update_airtable_record(record_id, responses_list):
     print("[+] Updating Airtable record...")
     airtable_handler = AirtableHandler(data_table)
-    if len(responses) < 25:
+    if len(responses_list) < 25:
         print("[-] Insufficient responses provided.")
         return None
+    responses = [response["response"] for response in responses_list]
     try:
         fields = {
             "fldFsFpm8taTGaBk9": responses[0],
