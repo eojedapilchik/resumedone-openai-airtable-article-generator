@@ -1,6 +1,6 @@
 import os
 import time
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import FastAPI, BackgroundTasks
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from helpers.airtable_handler import AirtableHandler
@@ -51,12 +51,15 @@ def process_article(article: Article):
     if prompts is None:
         print("No prompts found")
         return None
-    parsed_prompts = [prompt.replace("[job_name]", article.job_name) for prompt in prompts]
-    # print(parsed_prompts)
+    parsed_prompts = [
+        {**prompt, "prompt": prompt["prompt"].replace("[job_name]", article.job_name)}
+        for prompt in prompts
+    ]
     responses = process_prompts(parsed_prompts)
     if responses is None:
         print("No responses found")
         return None
+    print(responses)
     update_airtable_record(article.record_id, responses)
     end_time = time.time()
     elapsed_time = end_time - start_time
@@ -67,7 +70,10 @@ def get_prompts(language: str = 'EN'):
     airtable_handler = AirtableHandler(prompts_table)
     records = airtable_handler.get_records()
     if records:
-        prompts = [record.get("fields").get(f"Prompt {language}") for record in records]
+        prompts = [{
+            "section": record.get("fields").get("Section Name"),
+            "prompt": record.get("fields").get(f"Prompt {language}")
+        } for record in records]
         return prompts
     return None
 
@@ -82,9 +88,9 @@ def process_prompts(prompts: list):
         for i in range(retries):
             try:
                 print(f" - Processing prompt...{index} -> Attempt {i+1}/{retries}")
-                response = openai_handler.prompt(prompt)
+                response = openai_handler.prompt(prompt.get("prompt"))
                 print(f"[+] Received response from OpenAI {index}")
-                responses.append(response)
+                responses.append(f"\n\n  [{prompt.get('section', '')}] \n {response}\n\n")
                 break
             except OpenAIException as e:
                 print("Error: " + str(e))
@@ -94,16 +100,16 @@ def process_prompts(prompts: list):
                     continue
                 else:
                     print("OpenAI request failed after " + str(retries) + " attempts.")
-                    raise HTTPException(status_code=500, detail=str(e))
+                    responses.append(f"\n\n  [{prompt.get('section', '')}] \n *NO CONTENT WAS GENERATED* \n\n")
     return responses
 
 
 def update_airtable_record(record_id, responses):
     print("[+] Updating Airtable record...")
     airtable_handler = AirtableHandler(data_table)
-    if len(responses) < 25:
-        print("[-] Insufficient responses provided.")
-        return None
+    # if len(responses) < 25:
+    #     print("[-] Insufficient responses provided.")
+    #     return None
     try:
         fields = {
             "fldFsFpm8taTGaBk9": responses[0],
@@ -131,6 +137,7 @@ def update_airtable_record(record_id, responses):
             "fldeL1ubpzxaGc2eQ": responses[22],
             "fldM22W6tIrvIjuM7": responses[23],
             "fldrt3niG38mxy4tq": responses[24],
+            "fld7vn74uF0ZxQhXe": ''.join(responses)
         }
         airtable_handler.update_record(record_id, fields)
         print("[+] Airtable record updated successfully.")
