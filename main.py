@@ -77,7 +77,7 @@ def process_prompts(prompts: list):
     openai_handler = OpenAIHandler()
     responses = []
     index = 0
-    for prompt in prompts[:4]:
+    for prompt in prompts:
         index += 1
         for i in range(retries):
             try:
