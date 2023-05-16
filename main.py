@@ -65,7 +65,11 @@ def process_article(article: Article):
         print("No responses found")
         return None
     sorted_responses = sorted(responses, key=lambda x: x["position"])
-    #print(sorted_responses)
+    if show_debug:
+        sections = [record["section"] for record in sorted_responses]
+        print(sections)
+        prompts = [record["prompt"] for record in sorted_responses]
+        print(prompts)
     update_airtable_record(article.record_id, sorted_responses)
     end_time = time.time()
     elapsed_time = end_time - start_time
