@@ -42,7 +42,7 @@ class AirtableHandler:
         if table_name:
             update_table = Table(self._personal_access_token, self._base_key, table_name)
         try:
-            update_table.update(record_id, fields);
+            update_table.update(record_id, fields)
         except Exception as e:
             print(e)
             raise e

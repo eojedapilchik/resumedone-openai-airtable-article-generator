@@ -1,6 +1,5 @@
 import os
 import openai
-from time import sleep
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
