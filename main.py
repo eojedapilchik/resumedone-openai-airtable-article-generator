@@ -3,8 +3,8 @@ import time
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from airtable_handler import AirtableHandler
-from openai_handler import OpenAIHandler, OpenAIException
+from helpers.airtable_handler import AirtableHandler
+from helpers.openai_handler import OpenAIHandler, OpenAIException
 from typing import Optional
 
 app = FastAPI()
