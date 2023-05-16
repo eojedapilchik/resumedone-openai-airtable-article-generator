@@ -59,7 +59,6 @@ def process_article(article: Article):
     if responses is None:
         print("No responses found")
         return None
-    print(responses)
     update_airtable_record(article.record_id, responses)
     end_time = time.time()
     elapsed_time = end_time - start_time
@@ -107,9 +106,9 @@ def process_prompts(prompts: list):
 def update_airtable_record(record_id, responses):
     print("[+] Updating Airtable record...")
     airtable_handler = AirtableHandler(data_table)
-    # if len(responses) < 25:
-    #     print("[-] Insufficient responses provided.")
-    #     return None
+    if len(responses) < 25:
+        print("[-] Insufficient responses provided.")
+        return None
     try:
         fields = {
             "fldFsFpm8taTGaBk9": responses[0],
