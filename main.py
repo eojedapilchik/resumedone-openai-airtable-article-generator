@@ -76,7 +76,7 @@ def process_prompts(prompts: list):
         index += 1
         for i in range(retries):
             try:
-                print(f" - Processing prompt...{index} -> Attempt {i}/{retries}")
+                print(f" - Processing prompt...{index} -> Attempt {i+1}/{retries}")
                 response = openai_handler.prompt(prompt)
                 print(f"[+] Received response from OpenAI {index}")
                 responses.append(response)
