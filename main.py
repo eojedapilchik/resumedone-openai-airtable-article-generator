@@ -40,6 +40,11 @@ async def get_test(background_tasks: BackgroundTasks, record_id: str = None, job
         return {"status": "missing data"}
 
 
+@app.get("/health/")
+async def health_check():
+    return {"status": "alive"}
+
+
 def process_article(article: Article):
     start_time = time.time()
     prompts = get_prompts(article.language)
