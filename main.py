@@ -164,7 +164,7 @@ def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: float 
             "fldrt3niG38mxy4tq": responses[24],
             "fld7vn74uF0ZxQhXe": ''.join(responses),
             "fldus7pUQ61eM1ymY": elapsed_time_bf_at,
-            "fldsnne20dP9s0nUz": True,
+            "fldsnne20dP9s0nUz": ["Content Generated"],
             "fldpnyajPwaBXM6Zb": log_text,
         }
         airtable_handler.update_record(record_id, fields)
