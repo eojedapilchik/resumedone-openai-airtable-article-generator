@@ -106,7 +106,7 @@ def process_prompts(prompts: list, record_id: str):
                 response = openai_handler.prompt(prompt.get("prompt"))
                 print(f"[+] Received response from OpenAI {index}")
                 update_airtable_record_log(record_id, f"Received response from OpenAI - # {index}")
-                prompt_info = f"\n\n[SECTION] \n {prompt['section']} \n[PROMPT] \n {prompt['prompt']} \n\n"
+                prompt_info = f"\n\n[SECTION {prompt['position']}] \n {prompt['section']} \n[PROMPT] \n {prompt['prompt']} \n\n"
                 log_text += prompt_info
                 if show_debug:
                     print(prompt_info + f"\n\n[RESPONSE] {response}\n\n")
