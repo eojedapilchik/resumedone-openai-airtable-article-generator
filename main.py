@@ -14,6 +14,7 @@ load_dotenv()
 prompts_table = os.environ.get("TABLE_PROMPTS")
 data_table = os.environ.get("TABLE_DATA")
 show_debug = os.environ.get("SHOW_DEBUG") == "True"
+log_text = ""
 
 
 class Article(BaseModel):
@@ -58,9 +59,6 @@ def process_article(article: Article):
         {**prompt, "prompt": prompt["prompt"].replace("[job_name]", article.job_name)}
         for prompt in prompts
     ]
-    # for prompt in parsed_prompts:
-    #     print(prompt)
-    #     print("\n\n")
     sorted_prompts = sorted(parsed_prompts, key=lambda x: x["position"])
     responses = process_prompts(sorted_prompts, article.record_id)
     if responses is None:
@@ -96,6 +94,7 @@ def get_prompts(language: str = 'EN'):
 
 
 def process_prompts(prompts: list, record_id: str):
+    global log_text
     retries = int(os.getenv("OPENAI_RETRIES", 3))
     openai_handler = OpenAIHandler()
     index = 0
@@ -107,8 +106,11 @@ def process_prompts(prompts: list, record_id: str):
                 response = openai_handler.prompt(prompt.get("prompt"))
                 print(f"[+] Received response from OpenAI {index}")
                 update_airtable_record_log(record_id, f"Received response from OpenAI - # {index}")
+                prompt_info = f"\n\n  [SECTION:] \n {prompt['section']} \n [PROMPT:]\n {prompt['prompt']} \n\n "
+                f"[--RESPONSE--]\n{response} \n\n"
+                log_text += prompt_info
                 if show_debug:
-                    print(f"\n\n  [prompt: {prompt['section']}] \n\n [Response{prompt['prompt']}] \n\n [{response}] \n\n")
+                    print(prompt_info)
                 prompt["response"] = f"\n\n {response}\n\n"
                 break
             except OpenAIException as e:
@@ -124,6 +126,7 @@ def process_prompts(prompts: list, record_id: str):
 
 
 def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: float = 0):
+    global log_text
     print("[+] Updating Airtable record...")
     airtable_handler = AirtableHandler(data_table)
     if len(responses_list) < 25:
@@ -160,10 +163,11 @@ def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: float 
             "fld7vn74uF0ZxQhXe": ''.join(responses),
             "fldus7pUQ61eM1ymY": elapsed_time_bf_at,
             "fldsnne20dP9s0nUz": True,
-            "fldpnyajPwaBXM6Zb": "Finished"
+            "fldpnyajPwaBXM6Zb": log_text,
         }
         airtable_handler.update_record(record_id, fields)
         print("[+] Airtable record updated successfully.")
+        log_text = ""
     except Exception as e:
         print(f"[!!] Error updating record: {str(e)}")
 
