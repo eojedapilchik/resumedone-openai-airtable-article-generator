@@ -61,21 +61,22 @@ def process_article(article: Article):
     # for prompt in parsed_prompts:
     #     print(prompt)
     #     print("\n\n")
-    responses = process_prompts(parsed_prompts, article.record_id)
+    sorted_prompts = sorted(parsed_prompts, key=lambda x: x["position"])
+    responses = process_prompts(sorted_prompts, article.record_id)
     if responses is None:
         update_airtable_record_log(article.record_id, "No responses found for prompts")
         print("No responses found")
         return None
-    sorted_responses = sorted(responses, key=lambda x: x["position"])
+
     update_airtable_record_log(article.record_id, "Responses retrieved and sorted")
     if show_debug:
-        sections = [record["section"] for record in sorted_responses]
+        sections = [record["section"] for record in responses]
         print(sections)
-        prompts = [record["prompt"] for record in sorted_responses]
+        prompts = [record["prompt"] for record in responses]
         print(prompts)
     end_time = time.time()
     elapsed_time_bf_at = end_time - start_time
-    update_airtable_record(article.record_id, sorted_responses, elapsed_time_bf_at)
+    update_airtable_record(article.record_id, responses, elapsed_time_bf_at)
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Elapsed time: {elapsed_time} seconds")
