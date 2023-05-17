@@ -51,6 +51,7 @@ def process_article(article: Article):
     start_time = time.time()
     prompts = get_prompts(article.language)
     if prompts is None:
+        update_airtable_record_log(article.record_id, "No prompts Retrieved")
         print("No prompts found")
         return None
     parsed_prompts = [
@@ -60,18 +61,20 @@ def process_article(article: Article):
     # for prompt in parsed_prompts:
     #     print(prompt)
     #     print("\n\n")
-    responses = process_prompts(parsed_prompts)
+    responses = process_prompts(parsed_prompts, article.record_id)
     if responses is None:
+        update_airtable_record_log(article.record_id, "No responses found for prompts")
         print("No responses found")
         return None
     sorted_responses = sorted(responses, key=lambda x: x["position"])
+    update_airtable_record_log(article.record_id, "Responses retrieved and sorted")
     if show_debug:
         sections = [record["section"] for record in sorted_responses]
         print(sections)
         prompts = [record["prompt"] for record in sorted_responses]
         print(prompts)
     end_time = time.time()
-    elapsed_time_bf_at = int(end_time - start_time)
+    elapsed_time_bf_at = end_time - start_time
     update_airtable_record(article.record_id, sorted_responses, elapsed_time_bf_at)
     end_time = time.time()
     elapsed_time = end_time - start_time
@@ -91,7 +94,7 @@ def get_prompts(language: str = 'EN'):
     return None
 
 
-def process_prompts(prompts: list):
+def process_prompts(prompts: list, record_id: str):
     retries = int(os.getenv("OPENAI_RETRIES", 3))
     openai_handler = OpenAIHandler()
     index = 0
@@ -102,6 +105,7 @@ def process_prompts(prompts: list):
                 print(f" - Processing prompt...{index} -> Attempt {i + 1}/{retries}")
                 response = openai_handler.prompt(prompt.get("prompt"))
                 print(f"[+] Received response from OpenAI {index}")
+                update_airtable_record_log(record_id, "Received response from OpenAI {index}")
                 if show_debug:
                     print(f"\n\n {response} \n\n")
                 prompt["response"] = f"\n\n {response}\n\n"
@@ -118,7 +122,7 @@ def process_prompts(prompts: list):
     return prompts
 
 
-def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: int = 0):
+def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: float = 0):
     print("[+] Updating Airtable record...")
     airtable_handler = AirtableHandler(data_table)
     if len(responses_list) < 25:
@@ -154,7 +158,22 @@ def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: int = 
             "fldrt3niG38mxy4tq": responses[24],
             "fld7vn74uF0ZxQhXe": ''.join(responses),
             "fldus7pUQ61eM1ymY": elapsed_time_bf_at,
-            "fldsnne20dP9s0nUz": True
+            "fldsnne20dP9s0nUz": True,
+            "fldpnyajPwaBXM6Zb": "Finished"
+        }
+        airtable_handler.update_record(record_id, fields)
+        print("[+] Airtable record updated successfully.")
+    except Exception as e:
+        print(f"[!!] Error updating record: {str(e)}")
+
+
+def update_airtable_record_log(record_id, new_status: str = 'Error'):
+    print("[+] Updating Airtable record...")
+    airtable_handler = AirtableHandler(data_table)
+    try:
+        fields = {
+            "fldsnne20dP9s0nUz": False,
+            "fldpnyajPwaBXM6Zb": new_status
         }
         airtable_handler.update_record(record_id, fields)
         print("[+] Airtable record updated successfully.")
