@@ -105,7 +105,7 @@ def process_prompts(prompts: list, record_id: str):
                 print(f" - Processing prompt...{index} -> Attempt {i + 1}/{retries}")
                 response = openai_handler.prompt(prompt.get("prompt"))
                 print(f"[+] Received response from OpenAI {index}")
-                update_airtable_record_log(record_id, "Received response from OpenAI {index}")
+                update_airtable_record_log(record_id, f"Received response from OpenAI - prompt {index}")
                 if show_debug:
                     print(f"\n\n {response} \n\n")
                 prompt["response"] = f"\n\n {response}\n\n"
