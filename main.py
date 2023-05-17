@@ -70,7 +70,9 @@ def process_article(article: Article):
         print(sections)
         prompts = [record["prompt"] for record in sorted_responses]
         print(prompts)
-    update_airtable_record(article.record_id, sorted_responses)
+    end_time = time.time()
+    elapsed_time_bf_at = int(end_time - start_time)
+    update_airtable_record(article.record_id, sorted_responses, elapsed_time_bf_at)
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Elapsed time: {elapsed_time} seconds")
@@ -116,7 +118,7 @@ def process_prompts(prompts: list):
     return prompts
 
 
-def update_airtable_record(record_id, responses_list):
+def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: int = 0):
     print("[+] Updating Airtable record...")
     airtable_handler = AirtableHandler(data_table)
     if len(responses_list) < 25:
@@ -150,7 +152,9 @@ def update_airtable_record(record_id, responses_list):
             "fldeL1ubpzxaGc2eQ": responses[22],
             "fldM22W6tIrvIjuM7": responses[23],
             "fldrt3niG38mxy4tq": responses[24],
-            "fld7vn74uF0ZxQhXe": ''.join(responses)
+            "fld7vn74uF0ZxQhXe": ''.join(responses),
+            "fldus7pUQ61eM1ymY": elapsed_time_bf_at,
+            "fldsnne20dP9s0nUz": True
         }
         airtable_handler.update_record(record_id, fields)
         print("[+] Airtable record updated successfully.")
