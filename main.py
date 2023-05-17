@@ -55,11 +55,13 @@ def process_article(article: Article):
         update_airtable_record_log(article.record_id, "No prompts Retrieved")
         print("No prompts found")
         return None
+    filtered_prompts = [prompt for prompt in prompts if prompt.get("prompt") is not None]
     parsed_prompts = [
         {**prompt, "prompt": prompt["prompt"].replace("[job_name]", article.job_name)}
-        for prompt in prompts
+        for prompt in filtered_prompts
     ]
-    sorted_prompts = sorted(parsed_prompts, key=lambda x: x["position"])
+    # Sort prompts by position or by infinity if position is not set
+    sorted_prompts = sorted(parsed_prompts, key=lambda x: x["position"] or float("inf"))
     responses = process_prompts(sorted_prompts, article.record_id)
     if responses is None:
         update_airtable_record_log(article.record_id, "No responses found for prompts")
@@ -131,37 +133,12 @@ def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: float 
     global log_text
     print("[+] Updating Airtable record...")
     airtable_handler = AirtableHandler(data_table)
-    if len(responses_list) < 25:
+    if len(responses_list) <= 0:
         print("[-] Insufficient responses provided.")
         return None
     responses = [response["response"] for response in responses_list]
     try:
         fields = {
-            "fldFsFpm8taTGaBk9": responses[0],
-            "fldoUnQPkc8UHzVJd": responses[1],
-            "fldqBiG7n5AjEbEhy": responses[2],
-            "fldNQFEK8c2eToiCk": responses[3],
-            "fld0MC9OQyiUJjqJS": responses[4],
-            "fldjt9swf8CqMRhxq": responses[5],
-            "fldcHfigokcJByFAY": responses[6],
-            "fldcw4Q2TWfMUFawR": responses[7],
-            "fldj7O9GYhsvKDQOB": responses[8],
-            "fldUlWlpErsxnHSiW": responses[9],
-            "fld9WJI4YEEQslt9U": responses[10],
-            "fldQKHHlQSkG7KmUf": responses[11],
-            "fldKAlyaIPW8bxjNG": responses[12],
-            "fldXJgiOEkXfLp32V": responses[13],
-            "fldIDvFwq4kLoTX6c": responses[14],
-            "fldpqfjWJqzimVSAC": responses[15],
-            "fldOhsX1mDSvx8UtR": responses[16],
-            "fld7UkEv2wXVGsu5Q": responses[17],
-            "fldoTPcyB9aZSHprX": responses[18],
-            "fld9P0edvo50PXI6J": responses[19],
-            "fldaemLzy1zV1qBq0": responses[20],
-            "fld4PaKlF4OyiarbC": responses[21],
-            "fldeL1ubpzxaGc2eQ": responses[22],
-            "fldM22W6tIrvIjuM7": responses[23],
-            "fldrt3niG38mxy4tq": responses[24],
             "fld7vn74uF0ZxQhXe": ''.join(responses),
             "fldus7pUQ61eM1ymY": elapsed_time_bf_at,
             "fldsnne20dP9s0nUz": "Content Generated",
