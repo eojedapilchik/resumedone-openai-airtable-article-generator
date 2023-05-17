@@ -121,7 +121,10 @@ def process_prompts(prompts: list, record_id: str):
                     continue
                 else:
                     print("OpenAI request failed after " + str(retries) + " attempts.")
-                    prompt["response"] = f"\n\n *NO CONTENT WAS GENERATED FOR SECTION {prompt['section']}* \n\n"
+                    failed_text = f"\n\n *OPENAI REQUEST FAILED AFTER {retries} ATTEMPTS* \n" \
+                                  f"*NO CONTENT WAS GENERATED FOR SECTION {prompt['section']}* \n\n"
+                    log_text += failed_text
+                    prompt["response"] = failed_text
     return prompts
 
 
