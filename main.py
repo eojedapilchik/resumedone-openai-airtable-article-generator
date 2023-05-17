@@ -179,7 +179,6 @@ def update_airtable_record_log(record_id, new_status: str = 'Error'):
     airtable_handler = AirtableHandler(data_table)
     try:
         fields = {
-            "fldsnne20dP9s0nUz": False,
             "fldpnyajPwaBXM6Zb": new_status
         }
         airtable_handler.update_record(record_id, fields)
