@@ -108,7 +108,7 @@ def process_prompts(prompts: list, record_id: str):
                 print(f"[+] Received response from OpenAI {index}")
                 update_airtable_record_log(record_id, f"Received response from OpenAI - # {index}")
                 if show_debug:
-                    print(f"\n\n  [prompt: {prompt}] \n {response} \n\n")
+                    print(f"\n\n  [prompt: {prompt['section']}] \n [{prompt['prompt']}] \n [{response}] \n\n")
                 prompt["response"] = f"\n\n {response}\n\n"
                 break
             except OpenAIException as e:
