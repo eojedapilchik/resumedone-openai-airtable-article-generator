@@ -20,7 +20,7 @@ log_text = ""
 class Article(BaseModel):
     job_name: str
     record_id: str
-    language: Optional[str] = 'EN'
+    language: Optional[str]
 
 
 @app.post("/article-texts/")
@@ -32,11 +32,11 @@ async def get_test(background_tasks: BackgroundTasks, article: Article):
         return {"status": "missing data"}
 
 
-@app.get("/article-texts/")
-async def get_test(background_tasks: BackgroundTasks, record_id: str = None, job_name: str = None,
-                   language: str = 'EN'):
-    if record_id and job_name:
-        article = Article(record_id=record_id, job_name=job_name)
+@app.get("/article-texts/{record_id}/")
+async def get_test(background_tasks: BackgroundTasks, record_id: str, job_name: str,
+                   language: str):
+    if record_id and job_name and language:
+        article = Article(record_id=record_id, job_name=job_name, language=language)
         background_tasks.add_task(process_article, article)
         return {"status": "processing AI generated sections for article: " + job_name}
     else:
@@ -82,7 +82,7 @@ def process_article(article: Article):
     print(f"Elapsed time: {elapsed_time} seconds")
 
 
-def get_prompts(language: str = 'EN'):
+def get_prompts(language: str):
     airtable_handler = AirtableHandler(prompts_table)
     records = airtable_handler.get_records()
     if records:
