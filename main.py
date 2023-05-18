@@ -115,8 +115,8 @@ def process_prompts(prompts: list, record_id: str):
                 log_text += prompt_info
                 if show_debug:
                     print(prompt_info + f"\n\n[RESPONSE] {response}\n\n")
-                if prompt["type"]:
-                    prompt["response"] = f"{prompt['type']}{response}{prompt['type'].replace('<', '</')}\n"
+                if prompt["type"] and prompt["type"] != "":
+                    prompt["response"] = f"<{prompt['type']}>{response}</{prompt['type']}>\n"
                 else:
                     prompt["response"] = f"{response}\n"
                 break
@@ -155,6 +155,7 @@ def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: float 
         log_text = ""
     except Exception as e:
         print(f"[!!] Error updating record: {str(e)}")
+        print(responses_list)
 
 
 def update_airtable_record_log(record_id, new_status: str = 'Error'):
@@ -168,3 +169,4 @@ def update_airtable_record_log(record_id, new_status: str = 'Error'):
         print("[+] Airtable record updated successfully.")
     except Exception as e:
         print(f"[!!] Error updating record: {str(e)}")
+
