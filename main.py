@@ -89,7 +89,9 @@ def get_prompts(language: str):
         prompts = [{
             "section": record.get("fields").get("Section Name"),
             "prompt": record.get("fields").get(f"Prompt {language}"),
-            "position": record.get("fields").get("Position")
+            "position": record.get("fields").get("Position"),
+            "type": record.get("fields").get("Type", "").lower()
+            if record.get("fields").get("Type", "").lower() != "body" else ""
         } for record in records]
         return prompts
     return None
@@ -108,11 +110,15 @@ def process_prompts(prompts: list, record_id: str):
                 response = openai_handler.prompt(prompt.get("prompt"))
                 print(f"[+] Received response from OpenAI {index}")
                 update_airtable_record_log(record_id, f"Received response from OpenAI - # {index}")
-                prompt_info = f"\n\n[SECTION {prompt['position']}] \n {prompt['section']} \n[PROMPT] \n {prompt['prompt']} \n\n"
+                prompt_info = f"\n[SECTION {prompt['position']}] \n {prompt['section']} \n[PROMPT] \n " \
+                              f"{prompt['prompt']}\n"
                 log_text += prompt_info
                 if show_debug:
                     print(prompt_info + f"\n\n[RESPONSE] {response}\n\n")
-                prompt["response"] = f"\n\n {response}\n\n"
+                if prompt["type"]:
+                    prompt["response"] = f"{prompt['type']}{response}{prompt['type'].replace('<', '</')}\n"
+                else:
+                    prompt["response"] = f"{response}\n"
                 break
             except OpenAIException as e:
                 print("Error: " + str(e))
