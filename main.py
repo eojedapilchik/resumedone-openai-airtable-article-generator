@@ -116,9 +116,9 @@ def process_prompts(prompts: list, record_id: str):
                 if show_debug:
                     print(prompt_info + f"\n\n[RESPONSE] {response}\n\n")
                 if prompt["type"] and prompt["type"] != "":
-                    prompt["response"] = f"<{prompt['type']}>{response}</{prompt['type']}>\n"
+                    prompt["response"] = f"\n<{prompt['type']}>{response}</{prompt['type']}>\n"
                 else:
-                    prompt["response"] = f"{response}\n"
+                    prompt["response"] = f"\n{response}\n"
                 break
             except OpenAIException as e:
                 print("Error: " + str(e))
