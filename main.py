@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from helpers.airtable_handler import AirtableHandler
 from helpers.openai_handler import OpenAIHandler, OpenAIException
+from categorize_articles import update_category
 from typing import Optional
 
 app = FastAPI()
@@ -28,6 +29,15 @@ async def get_test(background_tasks: BackgroundTasks, article: Article):
     if article.record_id and article.job_name:
         background_tasks.add_task(process_article, article)
         return {"status": "processing AI generated sections for article: " + article.job_name}
+    else:
+        return {"status": "missing data"}
+
+
+@app.post("/article-category/")
+async def get_test(background_tasks: BackgroundTasks, article: Article):
+    if article.record_id and article.job_name:
+        background_tasks.add_task(update_category, article.record_id, article.job_name)
+        return {"status": "processing AI categorization for article: " + article.job_name}
     else:
         return {"status": "missing data"}
 
@@ -169,4 +179,3 @@ def update_airtable_record_log(record_id, new_status: str = 'Error'):
         print("[+] Airtable record updated successfully.")
     except Exception as e:
         print(f"[!!] Error updating record: {str(e)}")
-

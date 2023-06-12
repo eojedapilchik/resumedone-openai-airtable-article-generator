@@ -14,7 +14,7 @@ def main():
     start_time = time.time()
     at_token = os.environ.get("AIRTABLE_PAT_SEO_WK")
     airtable_handler = AirtableHandler("tblSwYjjy85nHa6yd", "appkwM6hcso08YF3I", at_token)
-    published_en_fr_articles = airtable_handler.get_all_records(view="viwCYqMpgvSDQMP8B", max_records=100)
+    published_en_fr_articles = airtable_handler.get_all_records(view="viwCYqMpgvSDQMP8B", max_records=300)
     print(len(published_en_fr_articles))
     openai_handler = OpenAIHandler("text-davinci-003")
     update_records = []
@@ -51,6 +51,25 @@ def main():
         airtable_handler.update_records_batch(update_records)
 
     print(f"Took {time.time() - start_time} seconds to process {total} articles")
+
+
+def update_category(record_id, article_name):
+    at_token = os.environ.get("AIRTABLE_PAT_SEO_WK")
+    airtable_handler = AirtableHandler("tblSwYjjy85nHa6yd", "appkwM6hcso08YF3I", at_token)
+    openai_handler = OpenAIHandler("text-davinci-003")
+    response = openai_handler.prompt(f"Categorize a blog post with this title: {article_name} "
+                                     f"according to one of the following 18 categories - do not add any"
+                                     f" other text to the response, just the category name-: "
+                                     f"Accounting and Finance, Administrative,"
+                                     f"Creative and Cultural, Engineering, Food & Catering, Information Technology,"
+                                     f"Maintenance & Repair, Marketing, Medical, Other, Retail, Sales, Social Work,"
+                                     f"Sport & Fitness, Transport & Logistics, Industry, Public Safety and Defense, "
+                                     f"Education")
+    category = extract_word(response)
+    if category:
+        print(f"Category: |{category}|")
+        airtable_handler.update_record(record_id, {"fldfuuMpUoLq5r4Hk": category})
+        print(f"[+] Processed article: {article_name} \n\n")
 
 
 def get_title_and_meta_description(url):
