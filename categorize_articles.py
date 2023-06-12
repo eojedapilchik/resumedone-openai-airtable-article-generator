@@ -1,22 +1,27 @@
 import os
 import time
-
+import re
+import requests
 from dotenv import load_dotenv
 from helpers.airtable_handler import AirtableHandler
 from helpers.openai_handler import OpenAIHandler
-import requests
 from bs4 import BeautifulSoup
 
 load_dotenv()
 
 
 def main():
+    start_time = time.time()
     at_token = os.environ.get("AIRTABLE_PAT_SEO_WK")
     airtable_handler = AirtableHandler("tblSwYjjy85nHa6yd", "appkwM6hcso08YF3I", at_token)
-    published_en_fr_articles = airtable_handler.get_all_records(view="viwCYqMpgvSDQMP8B")
+    published_en_fr_articles = airtable_handler.get_all_records(view="viwCYqMpgvSDQMP8B", max_records=100)
     print(len(published_en_fr_articles))
     openai_handler = OpenAIHandler("text-davinci-003")
-    for article in published_en_fr_articles[0:5]:
+    update_records = []
+    total = len(published_en_fr_articles)
+    i = 0
+    for article in published_en_fr_articles:
+        i += 1
         article_name = article.get("fields").get("Title")
         url = article.get("fields").get("URL")
         print(f"Article Name: {article_name}")
@@ -31,8 +36,21 @@ def main():
                                          f"Maintenance & Repair, Marketing, Medical, Other, Retail, Sales, Social Work,"
                                          f"Sport & Fitness, Transport & Logistics, Industry, Public Safety and Defense, "
                                          f"Education")
-        time.sleep(10)
-        print(response+"\n\n")
+        category = extract_word(response)
+        if category:
+            print(f"Category: |{category}|")
+            update_records.append({"id": article.get("id"), "fields": {"fldfuuMpUoLq5r4Hk": category}})
+            print(f"[+] Processed article: {i} / {total} \n\n")
+            time.sleep(5)
+
+        if i % 10 == 0:
+            airtable_handler.update_records_batch(update_records)
+            update_records = []
+
+    if len(update_records) > 0:
+        airtable_handler.update_records_batch(update_records)
+
+    print(f"Took {time.time() - start_time} seconds to process {total} articles")
 
 
 def get_title_and_meta_description(url):
@@ -55,6 +73,23 @@ def get_title_and_meta_description(url):
     except Exception as e:
         print(f"An error occurred: {e}")
         return None, None
+
+
+def extract_word(text):
+    keywords = [
+        'Accounting and Finance', 'Administrative', 'Creative and Cultural', 'Engineering',
+        'Food & Catering', 'Information Technology', 'Maintenance & Repair', 'Marketing',
+        'Medical', 'Other', 'Retail', 'Sales', 'Social Work', 'Sport & Fitness',
+        'Transport & Logistics', 'Industry', 'Public Safety and Defense', 'Education'
+    ]
+
+    pattern = r'\b(?:{})\b'.format('|'.join(map(re.escape, keywords)))
+    match = re.search(pattern, text, re.IGNORECASE)
+
+    if match:
+        return match.group(0)
+    else:
+        return None
 
 
 if __name__ == '__main__':
