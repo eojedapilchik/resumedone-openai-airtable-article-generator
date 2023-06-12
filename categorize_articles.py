@@ -22,7 +22,7 @@ def main():
     i = 0
     for article in published_en_fr_articles:
         i += 1
-        article_name = article.get("fields").get("Title")
+        article_name = article.get("fields").get("Cluster Name")
         url = article.get("fields").get("URL")
         print(f"Article Name: {article_name}")
         # print(f"URL: {url}")
