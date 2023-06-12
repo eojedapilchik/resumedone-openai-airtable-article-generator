@@ -46,3 +46,9 @@ class AirtableHandler:
         except Exception as e:
             print(e)
             raise e
+
+    def get_all_records(self, table_name: str = None, view: str = None, fields: list = None):
+        if table_name:
+            temp_table = Table(self._personal_access_token, self._base_key, table_name)
+            return temp_table.all(view=view, fields=fields)
+        return self._table.all(view=view, fields=fields)
