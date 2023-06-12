@@ -47,8 +47,18 @@ class AirtableHandler:
             print(e)
             raise e
 
-    def get_all_records(self, table_name: str = None, view: str = None, fields: list = None):
+    def update_records_batch(self, records: list, table_name: str = None):
+        update_table = self._table
+        if table_name:
+            update_table = Table(self._personal_access_token, self._base_key, table_name)
+        try:
+            update_table.batch_update(records)
+        except Exception as e:
+            print(e)
+            raise e
+
+    def get_all_records(self, table_name: str = None, view: str = None, fields: list = None, max_records: int = None):
         if table_name:
             temp_table = Table(self._personal_access_token, self._base_key, table_name)
-            return temp_table.all(view=view, fields=fields)
-        return self._table.all(view=view, fields=fields)
+            return temp_table.all(view=view, fields=fields, max_records=max_records)
+        return self._table.all(view=view, fields=fields, max_records=max_records)
