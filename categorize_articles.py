@@ -59,14 +59,15 @@ def update_category(record_id, article_name):
     openai_handler = OpenAIHandler("text-davinci-003")
     response = openai_handler.prompt(f"Categorize a blog post with this title: {article_name} "
                                      f"according to one of the following 18 categories - do not add any"
-                                     f" other category, just responde with the category name matching this list-: "
+                                     f" other category, just respond with the category name matching this list-: "
                                      f"Accounting and Finance, Administrative,"
                                      f"Creative and Cultural, Engineering, Food & Catering, Information Technology,"
                                      f"Maintenance & Repair, Marketing, Medical, Other, Retail, Sales, Social Work,"
                                      f"Sport & Fitness, Transport & Logistics, Industry, Public Safety and Defense, "
                                      f"Education")
     print(response)
-    category = extract_word(response)
+    cateogry_from_list = extract_word(response)
+    category = cateogry_from_list if cateogry_from_list else response
     if category:
         print(f"Category: |{category}|")
         airtable_handler.update_record(record_id, {"fldfuuMpUoLq5r4Hk": category})
