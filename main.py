@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from helpers.airtable_handler import AirtableHandler
 from helpers.openai_handler import OpenAIHandler, OpenAIException
-from helpers.frontapp_handler import FrontAppHandler
+from helpers.frontapp_handler import FrontAppHandler, FrontAppError
 from categorize_articles import update_category
 from typing import Optional
 
@@ -102,6 +102,8 @@ def create_review_conversation_task(conversation_id: str, language: str)-> bool:
         print(f"review: {response}")
         return True
     except OpenAIException as e:
+        return False
+    except FrontAppError as e:
         return False
 
 
