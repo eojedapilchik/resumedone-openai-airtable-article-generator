@@ -86,7 +86,7 @@ def create_review_conversation_task(conversation_id: str, language: str)-> bool:
     prompts = get_review_prompts(language)
     openai_handler = OpenAIHandler()
     random_index = random.randint(0, len(prompts) - 1)
-    #print(f"\r\nRandom index: {random_index}, PROMPT: {prompts[random_index]} \r\n")
+    print(f"\r\nRandom index: {random_index} \r\n")
     if prompts is None:
         return False
     try:

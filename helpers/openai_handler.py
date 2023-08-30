@@ -38,9 +38,10 @@ class OpenAIHandler:
     def prompt(self, message: str, max_tokens: int = 1000, temperature: float = 0.7):
 
         try:
-            response = openai.ChatCompletion.create(engine=self.engine,
-                                                prompt=message, max_tokens=max_tokens, temperature=temperature)
-            return response.choices[0].text.strip()
+            response = openai.ChatCompletion.create(model=self.engine,
+                                                    messages=[{"role": "user", "content": message}],
+                                                    temperature=temperature)
+            return response.choices[0]["message"]["content"].strip()
         except Exception as e:
             print("Open AI Error: " + str(e))
             raise OpenAIException(str(e)) from e
