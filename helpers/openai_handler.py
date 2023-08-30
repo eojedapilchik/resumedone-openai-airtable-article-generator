@@ -32,13 +32,13 @@ class OpenAIException(Exception):
 class OpenAIHandler:
     def __init__(self, engine: str = None):
         if engine is None:
-            engine = os.getenv("OPENAI_ENGINE", "text-davinci-002")
+            engine = os.getenv("OPENAI_ENGINE", "gpt-3.5-turbo")
         self.engine = engine
 
     def prompt(self, message: str, max_tokens: int = 1000, temperature: float = 0.7):
 
         try:
-            response = openai.Completion.create(engine=self.engine,
+            response = openai.ChatCompletion.create(engine=self.engine,
                                                 prompt=message, max_tokens=max_tokens, temperature=temperature)
             return response.choices[0].text.strip()
         except Exception as e:
