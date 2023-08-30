@@ -16,9 +16,9 @@ class FrontAppHandler:
         response.raise_for_status()
         return response.json()
 
-    def get_conversation(self, conversation_id):
+    def update_conversation(self, conversation_id, data):
         endpoint = f"/conversations/{conversation_id}"
-        return self._request('GET', endpoint)
+        return self._request('PATCH', endpoint, data)
 
     def create_comment(self, conversation_id, comment_body):
         endpoint = f"/conversations/{conversation_id}/comments"

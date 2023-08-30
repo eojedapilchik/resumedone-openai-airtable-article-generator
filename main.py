@@ -81,6 +81,7 @@ def create_review_conversation_task(conversation_id: str, language: str):
         return None
     try:
         response = openai_handler.prompt(prompts[random_index])
+        print(f"review: {response}")
         return response
     except OpenAIException as e:
         return None
