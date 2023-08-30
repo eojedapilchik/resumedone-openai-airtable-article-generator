@@ -1,10 +1,12 @@
 import os
 import time
+import random
 from fastapi import FastAPI, BackgroundTasks
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from helpers.airtable_handler import AirtableHandler
 from helpers.openai_handler import OpenAIHandler, OpenAIException
+from helpers.frontapp_handler import FrontAppHandler
 from categorize_articles import update_category
 from typing import Optional
 
@@ -56,6 +58,50 @@ async def get_test(background_tasks: BackgroundTasks, record_id: str, job_name: 
 @app.get("/health/")
 async def health_check():
     return {"status": "alive"}
+
+
+@app.get("/review/{conversation_id}/language/{language}/")
+async def create_review_conversation(background_tasks: BackgroundTasks, conversation_id: str, language: str):
+    # validate language is a string
+    if not language or not isinstance(language, str):
+        return {"status": "invalid language"}
+    if not conversation_id:
+        return {"status": "invalid conversation_id"}
+    background_tasks.add_task(create_review_conversation_task, conversation_id, language)
+    return {"status": "processing review for Frontapp conversation"}
+
+
+def create_review_conversation_task(conversation_id: str, language: str):
+    front_app = FrontAppHandler(os.environ.get("FRONT_API_TOKEN"))
+    prompts = get_review_prompts(language)
+    openai_handler = OpenAIHandler()
+    random_index = random.randint(0, len(prompts) - 1)
+    print(f"Random index: {random_index}")
+    if prompts is None:
+        return None
+    try:
+        response = openai_handler.prompt(prompts[random_index])
+        return response
+    except OpenAIException as e:
+        return None
+
+
+def get_review_prompts(language: str):
+    review_prompts_table = os.environ.get("REVIEW_PROMPTS_TABLE")
+    airtable_handler = AirtableHandler(review_prompts_table)
+    review_prompts = airtable_handler.get_records(filter_by_formula=f"{{Language}}='{language}'")
+    if review_prompts[0] is None:
+        print("No review prompts found")
+        review_prompts = []
+    try:
+        review_prompts = review_prompts[0].get("fields").values()
+        review_prompts = list(review_prompts)
+    except Exception as e:
+        print(e)
+        review_prompts = []
+
+    print(f"Retrieved {len(review_prompts)} review prompts")
+    return review_prompts
 
 
 def process_article(article: Article):

@@ -34,8 +34,8 @@ class AirtableHandler:
     def get_records(self, table_name: str = None, filter_by_formula: str = None):
         if table_name:
             temp_table = Table(self._personal_access_token, self._base_key, table_name)
-            return temp_table.all()
-        return self._table.all()
+            return temp_table.all(formula=filter_by_formula)
+        return self._table.all(formula=filter_by_formula)
 
     def update_record(self, record_id: str, fields: dict, table_name: str = None):
         update_table = self._table
