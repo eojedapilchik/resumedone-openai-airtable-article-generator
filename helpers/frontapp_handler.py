@@ -32,7 +32,6 @@ class FrontAppHandler:
     def _request(self, method, endpoint, data=None):
         url = f"{self.base_url}{endpoint}"
         response = requests.request(method, url, headers=self.headers, json=data)
-        print(response)
         try:
             response.raise_for_status()
         except HTTPError as e:

@@ -18,6 +18,7 @@ prompts_table = os.environ.get("TABLE_PROMPTS")
 data_table = os.environ.get("TABLE_DATA")
 show_debug = os.environ.get("SHOW_DEBUG") == "True"
 log_text = ""
+last_index = None
 
 
 class Article(BaseModel):
@@ -71,7 +72,7 @@ async def create_review_conversation(background_tasks: BackgroundTasks, conversa
     return {"status": "processing review for Frontapp conversation"}
 
 
-def create_review_conversation_task(conversation_id: str, language: str)-> bool:
+def create_review_conversation_task(conversation_id: str, language: str) -> bool:
     """
     Create a review for a given conversation in FrontApp.
 
@@ -82,10 +83,17 @@ def create_review_conversation_task(conversation_id: str, language: str)-> bool:
     Returns:
     - bool: True if the review was created successfully, False otherwise.
     """
+    global last_index
     front_app = FrontAppHandler(os.environ.get("FRONT_API_TOKEN"))
     prompts = get_review_prompts(language)
     openai_handler = OpenAIHandler()
-    random_index = random.randint(0, len(prompts) - 1)
+    # Generate a unique random index
+    while True:
+        random_index = random.randint(0, len(prompts) - 1)
+        if random_index != last_index:
+            break
+
+    last_index = random_index
     print(f"\r\nRandom index: {random_index} \r\n")
     if prompts is None:
         return False
@@ -94,8 +102,9 @@ def create_review_conversation_task(conversation_id: str, language: str)-> bool:
         if response is None or response == "":
             print("No review was obtained from OpenAI")
             return False
+        print(f"review: {response}")
         data = {"custom_fields": {
-            "Review": response,
+            "Review": sanitize_for_json(response),
         }}
         front_app.update_conversation(conversation_id, data)
         front_app.create_comment(conversation_id, response)
@@ -128,8 +137,9 @@ def get_review_prompts(language: str) -> list:
         if not review_prompts or review_prompts[0] is None:
             print("No review prompts found")
             return []
-        review_prompts = list(review_prompts[0].get("fields").values())[1:]
-
+        review_prompts = review_prompts[0].get("fields")
+        review_prompts.pop("Language")
+        review_prompts = list(review_prompts.values())
     except Exception as e:
         print(f"An error occurred: {e}")
         return []
@@ -259,3 +269,18 @@ def update_airtable_record_log(record_id, new_status: str = 'Error'):
         print("[+] Airtable record updated successfully.")
     except Exception as e:
         print(f"[!!] Error updating record: {str(e)}")
+
+
+def sanitize_for_json(input_str: str) -> str:
+    replacements = {
+        '\\': '',       # Remove backslashes
+        '"': '',        # Remove double quotes
+        '\n': ' ',      # Replace newlines with space
+        '\t': ' ',      # Replace tabs with space
+        '\r': ' '       # Replace carriage returns with space
+    }
+
+    for char, replacement in replacements.items():
+        input_str = input_str.replace(char, replacement)
+
+    return input_str
