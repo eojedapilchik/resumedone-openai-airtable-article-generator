@@ -9,11 +9,16 @@ class FrontAppError(Exception):
         super().__init__(message)
         self.response = response
         self.status_code = response.status_code
-        self.reason = response.reason
         try:
             self.frontapp_error = response.json().get('message', '')
         except ValueError:
             self.frontapp_error = ""
+        print(f"FrontAppError encountered!")
+        print(f"Message: {message}")
+        print(f"HTTP Status Code: {self.status_code}")
+        if self.frontapp_error:
+            print(f"FrontApp-specific Error Message: {self.frontapp_error}")
+
 
 
 class FrontAppHandler:
@@ -47,11 +52,15 @@ class FrontAppHandler:
         }
         return self._request('POST', endpoint, data)
 
-    def create_draft(self, conversation_id, draft_body, options={}):
+    def create_draft(self, conversation_id, draft_body, options=None):
         """Create a draft for a given conversation."""
+        if options is None:
+            options = {}
+
         endpoint = f"/conversations/{conversation_id}/drafts"
         data = {
             'body': draft_body,
             **options
         }
         return self._request('POST', endpoint, data)
+
