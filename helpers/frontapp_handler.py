@@ -14,7 +14,7 @@ class FrontAppHandler:
         url = f"{self.base_url}{endpoint}"
         response = requests.request(method, url, headers=self.headers, json=data)
         response.raise_for_status()
-        return response.json()
+        return response
 
     def update_conversation(self, conversation_id, data):
         endpoint = f"/conversations/{conversation_id}"

@@ -60,7 +60,7 @@ async def health_check():
     return {"status": "alive"}
 
 
-@app.get("/review/{conversation_id}/language/{language}/")
+@app.post("/review/{conversation_id}/language/{language}/")
 async def create_review_conversation(background_tasks: BackgroundTasks, conversation_id: str, language: str):
     # validate language is a string
     if not language or not isinstance(language, str):
@@ -76,11 +76,16 @@ def create_review_conversation_task(conversation_id: str, language: str):
     prompts = get_review_prompts(language)
     openai_handler = OpenAIHandler()
     random_index = random.randint(0, len(prompts) - 1)
-    print(f"Random index: {random_index}")
+    print(f"\r\nRandom index: {random_index}, PROMPT: {prompts[random_index]} \r\n")
     if prompts is None:
         return None
     try:
         response = openai_handler.prompt(prompts[random_index])
+        data = {"custom_fields": {
+            "Review": response,
+        }}
+        front_app.update_conversation(conversation_id, data)
+        front_app.create_comment(conversation_id, response)
         print(f"review: {response}")
         return response
     except OpenAIException as e:
