@@ -1,4 +1,19 @@
 import requests
+from requests.exceptions import HTTPError
+
+
+class FrontAppError(Exception):
+    """Custom exception for FrontApp specific errors."""
+
+    def __init__(self, message, response):
+        super().__init__(message)
+        self.response = response
+        self.status_code = response.status_code
+        self.reason = response.reason
+        try:
+            self.frontapp_error = response.json().get('message', '')
+        except ValueError:
+            self.frontapp_error = ""
 
 
 class FrontAppHandler:
@@ -13,7 +28,12 @@ class FrontAppHandler:
     def _request(self, method, endpoint, data=None):
         url = f"{self.base_url}{endpoint}"
         response = requests.request(method, url, headers=self.headers, json=data)
-        response.raise_for_status()
+        print(response)
+        try:
+            response.raise_for_status()
+        except HTTPError as e:
+            raise FrontAppError(f"FrontApp API Error: {e}", response)
+
         return response
 
     def update_conversation(self, conversation_id, data):
@@ -24,5 +44,14 @@ class FrontAppHandler:
         endpoint = f"/conversations/{conversation_id}/comments"
         data = {
             'body': comment_body
+        }
+        return self._request('POST', endpoint, data)
+
+    def create_draft(self, conversation_id, draft_body, options={}):
+        """Create a draft for a given conversation."""
+        endpoint = f"/conversations/{conversation_id}/drafts"
+        data = {
+            'body': draft_body,
+            **options
         }
         return self._request('POST', endpoint, data)

@@ -1,0 +1,170 @@
+{
+  "_links": {
+    "self": "https://ponton-media-limited.api.frontapp.com/events/evt_3pos9ct2"
+  },
+  "id": "evt_3pos9ct2",
+  "type": "tag",
+  "emitted_at": 1693424615.812,
+  "conversation": {
+    "_links": {
+      "self": "https://ponton-media-limited.api.frontapp.com/conversations/cnv_z49jivq",
+      "related": {
+        "events": "https://ponton-media-limited.api.frontapp.com/conversations/cnv_z49jivq/events",
+        "followers": "https://ponton-media-limited.api.frontapp.com/conversations/cnv_z49jivq/followers",
+        "messages": "https://ponton-media-limited.api.frontapp.com/conversations/cnv_z49jivq/messages",
+        "comments": "https://ponton-media-limited.api.frontapp.com/conversations/cnv_z49jivq/comments",
+        "inboxes": "https://ponton-media-limited.api.frontapp.com/conversations/cnv_z49jivq/inboxes",
+        "last_message": "https://ponton-media-limited.api.frontapp.com/messages/msg_1qm7ynrq?referer=conversation"
+      }
+    },
+    "id": "cnv_z49jivq",
+    "subject": "Re: Your subscription has been cancelled",
+    "status": "assigned",
+    "assignee": {
+      "_links": {
+        "self": "https://ponton-media-limited.api.frontapp.com/teammates/tea_9s6l2",
+        "related": {
+          "inboxes": "https://ponton-media-limited.api.frontapp.com/teammates/tea_9s6l2/inboxes",
+          "conversations": "https://ponton-media-limited.api.frontapp.com/teammates/tea_9s6l2/conversations"
+        }
+      },
+      "id": "tea_9s6l2",
+      "email": "patrick@resumedone.io",
+      "username": "pat",
+      "first_name": "Pat",
+      "last_name": "B.",
+      "is_admin": false,
+      "is_available": true,
+      "is_blocked": false,
+      "custom_fields": {}
+    },
+    "recipient": {
+      "_links": {
+        "related": {
+          "contact": "https://ponton-media-limited.api.frontapp.com/contacts/crd_3dys7py"
+        }
+      },
+      "name": "Jonathan Batres",
+      "handle": "jonathanbatres2001@gmail.com",
+      "role": "from"
+    },
+    "tags": [
+      {
+        "_links": {
+          "self": "https://ponton-media-limited.api.frontapp.com/tags/tag_3q8exi",
+          "related": {
+            "conversations": "https://ponton-media-limited.api.frontapp.com/tags/tag_3q8exi/conversations",
+            "owner": "https://ponton-media-limited.api.frontapp.com/teams/tim_4j3x2",
+            "parent_tag": null,
+            "children": null
+          }
+        },
+        "id": "tag_3q8exi",
+        "name": "english",
+        "highlight": null,
+        "is_private": false,
+        "is_visible_in_conversation_lists": false,
+        "updated_at": 1693423791.583,
+        "created_at": 1690967697.396
+      },
+      {
+        "_links": {
+          "self": "https://ponton-media-limited.api.frontapp.com/tags/tag_3q8pjq",
+          "related": {
+            "conversations": "https://ponton-media-limited.api.frontapp.com/tags/tag_3q8pjq/conversations",
+            "owner": "https://ponton-media-limited.api.frontapp.com/teams/tim_4j3x2",
+            "parent_tag": null,
+            "children": null
+          }
+        },
+        "id": "tag_3q8pjq",
+        "name": "spanish",
+        "highlight": null,
+        "is_private": false,
+        "is_visible_in_conversation_lists": false,
+        "updated_at": 1693421304.312,
+        "created_at": 1690975712.495
+      },
+      {
+        "_links": {
+          "self": "https://ponton-media-limited.api.frontapp.com/tags/tag_3rr66u",
+          "related": {
+            "conversations": "https://ponton-media-limited.api.frontapp.com/tags/tag_3rr66u/conversations",
+            "owner": "https://ponton-media-limited.api.frontapp.com/teams/tim_4j3x2",
+            "parent_tag": null,
+            "children": null
+          }
+        },
+        "id": "tag_3rr66u",
+        "name": "Get Review",
+        "highlight": "green",
+        "is_private": false,
+        "is_visible_in_conversation_lists": true,
+        "updated_at": 1693424615.929,
+        "created_at": 1693421065.928
+      }
+    ],
+    "links": [],
+    "custom_fields": {
+      "Support email": "support@cv-lite.com",
+      "Brand": "CV Lite",
+      "Salutation": "Dear",
+      "Closing": "Best regards,",
+      "Account link": "https://cv-lite.com/account",
+      "Checkout Link": "https://cv-lite.com/checkout",
+      "Terms and conditions Link": "https://cv-lite.com/terms-and-conditions",
+      "Conversation Domain": "cv-lite.com",
+      "Conversation Language": "english"
+    },
+    "created_at": 1693340767.308,
+    "is_private": false,
+    "scheduled_reminders": [],
+    "metadata": {}
+  },
+  "source": {
+    "_meta": {
+      "type": "teammate"
+    },
+    "data": {
+      "_links": {
+        "self": "https://ponton-media-limited.api.frontapp.com/teammates/tea_8y8wm",
+        "related": {
+          "inboxes": "https://ponton-media-limited.api.frontapp.com/teammates/tea_8y8wm/inboxes",
+          "conversations": "https://ponton-media-limited.api.frontapp.com/teammates/tea_8y8wm/conversations"
+        }
+      },
+      "id": "tea_8y8wm",
+      "email": "customer-service@cv-lite.com",
+      "username": "customer_service",
+      "first_name": "Customer",
+      "last_name": "Admin",
+      "is_admin": true,
+      "is_available": true,
+      "is_blocked": false,
+      "custom_fields": {}
+    }
+  },
+  "target": {
+    "_meta": {
+      "type": "tag"
+    },
+    "data": {
+      "_links": {
+        "self": "https://ponton-media-limited.api.frontapp.com/tags/tag_3rr66u",
+        "related": {
+          "conversations": "https://ponton-media-limited.api.frontapp.com/tags/tag_3rr66u/conversations",
+          "owner": "https://ponton-media-limited.api.frontapp.com/teams/tim_4j3x2",
+          "parent_tag": null,
+          "children": null
+        }
+      },
+      "id": "tag_3rr66u",
+      "name": "Get Review",
+      "highlight": "green",
+      "is_private": false,
+      "is_visible_in_conversation_lists": true,
+      "updated_at": 1693424615.929,
+      "created_at": 1693421065.928
+    }
+  }
+}

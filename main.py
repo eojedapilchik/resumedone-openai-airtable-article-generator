@@ -71,40 +71,66 @@ async def create_review_conversation(background_tasks: BackgroundTasks, conversa
     return {"status": "processing review for Frontapp conversation"}
 
 
-def create_review_conversation_task(conversation_id: str, language: str):
+def create_review_conversation_task(conversation_id: str, language: str)-> bool:
+    """
+    Create a review for a given conversation in FrontApp.
+
+    Args:
+    - conversation_id (str): The ID of the conversation in FrontApp.
+    - language (str): The language of the review prompts to use.
+
+    Returns:
+    - bool: True if the review was created successfully, False otherwise.
+    """
     front_app = FrontAppHandler(os.environ.get("FRONT_API_TOKEN"))
     prompts = get_review_prompts(language)
     openai_handler = OpenAIHandler()
     random_index = random.randint(0, len(prompts) - 1)
     print(f"\r\nRandom index: {random_index}, PROMPT: {prompts[random_index]} \r\n")
     if prompts is None:
-        return None
+        return False
     try:
         response = openai_handler.prompt(prompts[random_index])
+        if response is None or response == "":
+            print("No review was obtained from OpenAI")
+            return False
         data = {"custom_fields": {
             "Review": response,
         }}
         front_app.update_conversation(conversation_id, data)
         front_app.create_comment(conversation_id, response)
         print(f"review: {response}")
-        return response
+        return True
     except OpenAIException as e:
-        return None
+        return False
 
 
-def get_review_prompts(language: str):
+def get_review_prompts(language: str) -> list:
+    """
+    Retrieve review prompts for a given language from Airtable.
+
+    Args:
+    - language (str): The desired language for the review prompts.
+
+    Returns:
+    - list: A list of review prompts.
+    """
     review_prompts_table = os.environ.get("REVIEW_PROMPTS_TABLE")
+    if not review_prompts_table:
+        print("Environment variable REVIEW_PROMPTS_TABLE not set!")
+        return []
+
     airtable_handler = AirtableHandler(review_prompts_table)
-    review_prompts = airtable_handler.get_records(filter_by_formula=f"{{Language}}='{language}'")
-    if review_prompts[0] is None:
-        print("No review prompts found")
-        review_prompts = []
     try:
-        review_prompts = review_prompts[0].get("fields").values()
-        review_prompts = list(review_prompts)
+        review_prompts = airtable_handler.get_records(filter_by_formula=f"{{Language}}='{language}'")
+        if not review_prompts or review_prompts[0] is None:
+            print("No review prompts found")
+            return []
+        review_prompts = list(review_prompts[0].get("fields").values())[1:]
+
     except Exception as e:
-        print(e)
-        review_prompts = []
+        print(f"An error occurred: {e}")
+        return []
 
     print(f"Retrieved {len(review_prompts)} review prompts")
     return review_prompts
