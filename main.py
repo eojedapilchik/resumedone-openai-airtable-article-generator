@@ -102,13 +102,13 @@ def create_review_conversation_task(conversation_id: str, language: str) -> bool
         if response is None or response == "":
             print("No review was obtained from OpenAI")
             return False
+        response = sanitize_for_json(response)
         print(f"review: {response}")
         data = {"custom_fields": {
-            "Review": sanitize_for_json(response),
+            "Review": response,
         }}
         front_app.update_conversation(conversation_id, data)
         front_app.create_comment(conversation_id, response)
-        print(f"review: {response}")
         return True
     except OpenAIException as e:
         return False
@@ -277,7 +277,8 @@ def sanitize_for_json(input_str: str) -> str:
         '"': '',        # Remove double quotes
         '\n': ' ',      # Replace newlines with space
         '\t': ' ',      # Replace tabs with space
-        '\r': ' '       # Replace carriage returns with space
+        '\r': ' ',      # Replace carriage returns with space
+        '\'': '',      # Replace single quotes with apostrophes
     }
 
     for char, replacement in replacements.items():
