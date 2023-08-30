@@ -20,7 +20,6 @@ class FrontAppError(Exception):
             print(f"FrontApp-specific Error Message: {self.frontapp_error}")
 
 
-
 class FrontAppHandler:
     def __init__(self, token, base_url='https://api2.frontapp.com'):
         self.base_url = base_url
@@ -63,4 +62,3 @@ class FrontAppHandler:
             **options
         }
         return self._request('POST', endpoint, data)
-
