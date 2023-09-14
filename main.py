@@ -7,8 +7,23 @@ from helpers.airtable_handler import AirtableHandler
 from helpers.openai_handler import OpenAIHandler, OpenAIException
 from categorize_articles import update_category
 from typing import Optional
+from helpers.lemlist_handler import LemlistHandler
+from fastapi.middleware.cors import CORSMiddleware
+from tasks import add_contacts_to_campaigns
 
 app = FastAPI()
+
+allowed_origins = [
+    "https://block--st-ma-tla-qc-s-h-m-c-p--re52m6d.alt.airtableblocks.com"
+]
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,  # allows all origins
+    allow_origin_regex=r"https://.*\.alt\.airtableblocks\.com$",
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+)
 
 load_dotenv()
 
@@ -56,6 +71,44 @@ async def get_test(background_tasks: BackgroundTasks, record_id: str, job_name: 
 @app.get("/health/")
 async def health_check():
     return {"status": "alive"}
+
+
+@app.get("/lemlist/campaigns/")
+async def get_campaigns():
+    lemlist_api_key = os.environ.get("LEMLIST_API_KEY")
+    if lemlist_api_key is None:
+        return {"status": "missing lemlist api key"}
+    handler = LemlistHandler(lemlist_api_key)
+    campaigns = handler.list_campaigns()
+    return {"status": "success",
+            "campaigns": campaigns}
+
+
+@app.post("/lemlist/campaigns/{campaign_id}/contacts/")
+async def add_contact_to_campaign(campaign_id: str, contact_data: dict):
+    lemlist_api_key = os.environ.get("LEMLIST_API_KEY")
+    if lemlist_api_key is None:
+        return {"status": "missing lemlist api key"}
+    handler = LemlistHandler(lemlist_api_key)
+    try:
+        response = handler.add_contact_to_campaign(campaign_id, contact_data)
+        return {"status": "success",
+                "response": response}
+    except Exception as e:
+        return {"status": "error",
+                "response": str(e)}
+
+
+@app.post("/lemlist/campaigns/contacts/bulk/")
+async def add_contacts_to_campaign(campaign_id: str, contacts_data: list):
+    lemlist_api_key = os.environ.get("LEMLIST_API_KEY")
+    if lemlist_api_key is None:
+        return {"status": "missing lemlist api key"}
+
+    task = add_contacts_to_campaigns.delay(add_contacts_to_campaigns, campaign_id, contacts_data, lemlist_api_key)
+
+    return {"status": "processing",
+            "responses": f"Contacts are being added in the background. Task id: {task.id}"}
 
 
 def process_article(article: Article):
