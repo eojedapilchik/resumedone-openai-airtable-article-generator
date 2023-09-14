@@ -56,7 +56,7 @@ def main():
 def update_category(record_id, article_name):
     at_token = os.environ.get("AIRTABLE_PAT_SEO_WK")
     airtable_handler = AirtableHandler("tblSwYjjy85nHa6yd", "appkwM6hcso08YF3I", at_token)
-    openai_handler = OpenAIHandler("text-davinci-003")
+    openai_handler = OpenAIHandler()
     response = openai_handler.prompt(f"Categorize a blog post with this title: {article_name} "
                                      f"according to one of the following 18 categories - do not add any"
                                      f" other category, just respond with the category name matching this list-: "
