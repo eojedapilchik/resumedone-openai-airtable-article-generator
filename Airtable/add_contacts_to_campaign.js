@@ -6,7 +6,7 @@ const CONTACT_FIELDS = {
     campaignName: "fld66SDLvy5qJcjTr",
     addedToCampaign: "fldoLj2GP27lq9PSq"
 }
-const BASE_URL = 'https://5899-81-202-12-69.ngrok-free.app/lemlist/campaigns';
+const BASE_URL = 'https://starfish-app-2sc3d.ondigitalocean.app/lemlist/campaigns';
 
 const campaigns_data = await fetchCampaigns();
 const campaign_names = campaigns_data.reduce((acum, value)=>{
@@ -73,6 +73,8 @@ async function addContactsToCampaign(campaign){
             const response = await postContactToCampaign(campaign._id, { email, companyDomain });
             if(response.status === "success"){
                 await updateContactAddedToCampaign(contacts_query.records[i].id, campaign.name);
+            }else{
+                console.error(`${response.response}`)
             }
             console.log(`Progress ${((i+1)*100/total_contacts).toFixed(2)}%`)
         }

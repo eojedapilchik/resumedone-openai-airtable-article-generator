@@ -48,6 +48,9 @@ if(websites_to_fetch.records.length){
     for(let i=0; i<total_websites; i++){
         const contact_founds = []
         const website_url = website_records[i].getCellValueAsString(WEBSITE_FIELDS.website);
+        if(!website_url){
+            continue;
+        }
         const progress = Math.round(((i+1)/total_websites) * 100)
         if(live_link_records.includes(website_url)){
             console.log(`Skipping ${website_url} already in Live Links Progress: ${progress}`)
@@ -97,7 +100,7 @@ async function checkContactData(website_url){
     };
 
     try {
-        const response = await remoteFetchAsync(url, options);
+        const response = await fetch(url, options);
 
         if (!response.ok) {
             console.error(`HTTP error: ${response.status}`);
