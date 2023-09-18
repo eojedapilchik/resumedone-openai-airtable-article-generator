@@ -16,4 +16,3 @@ class WebhookData(BaseModel):
     emailTemplateId: str = None
     sendUserId: str = None
     type: str
-
