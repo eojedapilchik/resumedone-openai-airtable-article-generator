@@ -1,5 +1,12 @@
 # resumedone-openai-airtable-article-generator
 v 1.1
+
+## Configuration
+1. Create the LemList webhooks to point to the FastAPI server, endpoint: `/webhook/email_replied/`
+2. Add email tags to the email account to be used: "Campaign", "First Reply", "Second Reply", "Third Reply"
+3. Add the email account to the environment variables: `GMAIL_SENDER_{ACCOUNT}=account@email.com`, i.e. `GMAIL_SENDER_INFO=info@resumedone.io`
+4. Add the credentials file to the root directory of the project: `credentials_{account}.json`, i.e. `credentials_info.json` 
+
 ## Commands
 
 1. Starting the Worker:
