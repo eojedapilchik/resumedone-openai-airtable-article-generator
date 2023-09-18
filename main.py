@@ -1,7 +1,7 @@
 import os
 import time
 import random
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, Body
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from helpers.airtable_handler import AirtableHandler
@@ -12,6 +12,7 @@ from typing import Optional
 from helpers.lemlist_handler import LemlistHandler
 from fastapi.middleware.cors import CORSMiddleware
 from tasks import add_contacts_to_campaigns
+from models.lemlist_webhook import WebhookData
 
 app = FastAPI()
 
@@ -85,6 +86,45 @@ async def create_review_conversation(background_tasks: BackgroundTasks, conversa
         return {"status": "invalid conversation_id"}
     background_tasks.add_task(create_review_conversation_task, conversation_id, language)
     return {"status": "processing review for Frontapp conversation"}
+
+
+@app.get("/lemlist/campaigns/")
+async def get_campaigns():
+    lemlist_api_key = os.environ.get("LEMLIST_API_KEY")
+    if lemlist_api_key is None:
+        return {"status": "missing lemlist api key"}
+    handler = LemlistHandler(lemlist_api_key)
+    campaigns = handler.list_campaigns()
+    return {"status": "success",
+            "campaigns": campaigns}
+
+
+@app.post("/lemlist/campaigns/{campaign_id}/contacts/")
+async def add_contact_to_campaign(campaign_id: str, contact_data: dict):
+    lemlist_api_key = os.environ.get("LEMLIST_API_KEY")
+    if lemlist_api_key is None:
+        return {"status": "missing lemlist api key"}
+    handler = LemlistHandler(lemlist_api_key)
+    try:
+        response = handler.add_contact_to_campaign(campaign_id, contact_data)
+        return {"status": "success",
+                "response": response}
+    except Exception as e:
+        return {"status": "error",
+                "response": str(e)}
+
+
+@app.post("/webhook/email_replied/")
+async def receive_webhook(data: WebhookData = Body(...)):
+    # sendUserEmail = data.sendUserEmail
+    # subject = data.subject
+    # campaignName = data.campaignName
+    # leadId = data.leadId
+    # campaignId = data.campaignId
+    # text = data.text
+    print(f"Received webhook: {data}")
+
+    return {"message": "Webhook received and processed!"}
 
 
 def create_review_conversation_task(conversation_id: str, language: str) -> bool:
@@ -161,32 +201,6 @@ def get_review_prompts(language: str) -> list:
 
     print(f"Retrieved {len(review_prompts)} review prompts")
     return review_prompts
-
-
-@app.get("/lemlist/campaigns/")
-async def get_campaigns():
-    lemlist_api_key = os.environ.get("LEMLIST_API_KEY")
-    if lemlist_api_key is None:
-        return {"status": "missing lemlist api key"}
-    handler = LemlistHandler(lemlist_api_key)
-    campaigns = handler.list_campaigns()
-    return {"status": "success",
-            "campaigns": campaigns}
-
-
-@app.post("/lemlist/campaigns/{campaign_id}/contacts/")
-async def add_contact_to_campaign(campaign_id: str, contact_data: dict):
-    lemlist_api_key = os.environ.get("LEMLIST_API_KEY")
-    if lemlist_api_key is None:
-        return {"status": "missing lemlist api key"}
-    handler = LemlistHandler(lemlist_api_key)
-    try:
-        response = handler.add_contact_to_campaign(campaign_id, contact_data)
-        return {"status": "success",
-                "response": response}
-    except Exception as e:
-        return {"status": "error",
-                "response": str(e)}
 
 
 @app.post("/lemlist/campaigns/contacts/bulk/")
@@ -326,12 +340,12 @@ def update_airtable_record_log(record_id, new_status: str = 'Error'):
 
 def sanitize_for_json(input_str: str) -> str:
     replacements = {
-        '\\': '',       # Remove backslashes
-        '"': '',        # Remove double quotes
-        '\n': ' ',      # Replace newlines with space
-        '\t': ' ',      # Replace tabs with space
-        '\r': ' ',      # Replace carriage returns with space
-        '\'': '',      # Replace single quotes with apostrophes
+        '\\': '',  # Remove backslashes
+        '"': '',  # Remove double quotes
+        '\n': ' ',  # Replace newlines with space
+        '\t': ' ',  # Replace tabs with space
+        '\r': ' ',  # Replace carriage returns with space
+        '\'': '',  # Replace single quotes with apostrophes
     }
 
     for char, replacement in replacements.items():

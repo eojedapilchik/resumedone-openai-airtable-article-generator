@@ -64,3 +64,8 @@ Shutdown and remove the container:
 docker stop rabbitmq
 docker rm rabbitmq
 ```
+
+### FastAPI Commands:
+```bash
+gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+```
