@@ -44,7 +44,7 @@ class Article(BaseModel):
 
 
 @app.post("/article-texts/")
-async def get_test(background_tasks: BackgroundTasks, article: Article):
+async def create_article_sections(background_tasks: BackgroundTasks, article: Article):
     if article.record_id and article.job_name:
         background_tasks.add_task(process_article, article)
         return {"status": "processing AI generated sections for article: " + article.job_name}
@@ -53,7 +53,7 @@ async def get_test(background_tasks: BackgroundTasks, article: Article):
 
 
 @app.post("/article-category/")
-async def get_test(background_tasks: BackgroundTasks, article: Article):
+async def update_article_category(background_tasks: BackgroundTasks, article: Article):
     if article.record_id and article.job_name:
         background_tasks.add_task(update_category, article.record_id, article.job_name)
         return {"status": "processing AI categorization for article: " + article.job_name}
@@ -62,7 +62,7 @@ async def get_test(background_tasks: BackgroundTasks, article: Article):
 
 
 @app.get("/article-texts/{record_id}/")
-async def get_test(background_tasks: BackgroundTasks, record_id: str, job_name: str,
+async def create_article(background_tasks: BackgroundTasks, record_id: str, job_name: str,
                    language: str):
     if record_id and job_name and language:
         article = Article(record_id=record_id, job_name=job_name, language=language)
@@ -122,6 +122,7 @@ async def receive_webhook(data: WebhookData = Body(...)):
     # leadId = data.leadId
     # campaignId = data.campaignId
     # text = data.text
+    # TODO: optionally check if message is in gmail, process message with openai, send first email
     print(f"Received webhook: {data}")
 
     return {"message": "Webhook received and processed!"}
@@ -314,7 +315,7 @@ def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: float 
         fields = {
             "fld7vn74uF0ZxQhXe": ''.join(responses),
             "fldus7pUQ61eM1ymY": elapsed_time_bf_at,
-            "fldsnne20dP9s0nUz": "Content Generated",
+            "fldsnne20dP9s0nUz": "To Review",
             "fldpnyajPwaBXM6Zb": log_text,
         }
         airtable_handler.update_record(record_id, fields)
