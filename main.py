@@ -1,7 +1,7 @@
 import os
 import time
 import random
-from fastapi import FastAPI, BackgroundTasks, Body
+from fastapi import FastAPI, BackgroundTasks, Body, HTTPException
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from helpers.airtable_handler import AirtableHandler
@@ -10,7 +10,8 @@ from helpers.frontapp_handler import FrontAppHandler, FrontAppError
 from helpers.lemlist_handler import LemlistHandler
 from helpers.instantlyai_handler import InstantlyHandler
 from categorize_articles import update_category
-from typing import Optional
+from typing import Optional, List
+from models.instantly_lead import Lead
 from fastapi.middleware.cors import CORSMiddleware
 from tasks import add_contacts_to_campaigns
 from models.lemlist_webhook import WebhookData
@@ -64,7 +65,7 @@ async def update_article_category(background_tasks: BackgroundTasks, article: Ar
 
 @app.get("/article-texts/{record_id}/")
 async def create_article(background_tasks: BackgroundTasks, record_id: str, job_name: str,
-                   language: str):
+                         language: str):
     if record_id and job_name and language:
         article = Article(record_id=record_id, job_name=job_name, language=language)
         background_tasks.add_task(process_article, article)
@@ -102,23 +103,21 @@ async def get_campaigns():
 
 @app.get("/instantly/campaigns/")
 async def get_campaigns():
-    instantly_api_key = os.environ.get("INSTANTLY_API_KEY")
-    if instantly_api_key is None:
-        return {"status": "missing instantly api key"}
-    handler = InstantlyHandler(instantly_api_key)
-    campaigns = handler.list_campaigns()
-    return {"status": "success",
-            "campaigns": campaigns}
-
-
-@app.post("/lemlist/campaigns/{campaign_id}/contacts/")
-async def add_contact_to_campaign(campaign_id: str, contact_data: dict):
-    lemlist_api_key = os.environ.get("LEMLIST_API_KEY")
-    if lemlist_api_key is None:
-        return {"status": "missing lemlist api key"}
-    handler = LemlistHandler(lemlist_api_key)
+    handler = get_instantly_handler()
     try:
-        response = handler.add_contact_to_campaign(campaign_id, contact_data)
+        campaigns = handler.list_campaigns()
+        return {"status": "success",
+                "campaigns": campaigns}
+    except Exception as e:
+        return {"status": "error",
+                "response": str(e)}
+
+
+@app.post("/instantly/campaigns/{campaign_id}/leads/")
+async def add_leads_to_campaign(campaign_id: str, leads: List[Lead]):
+    handler = get_instantly_handler()
+    try:
+        response = handler.add_leads_to_campaign(campaign_id, leads)
         return {"status": "success",
                 "response": response}
     except Exception as e:
@@ -138,6 +137,17 @@ async def receive_webhook(data: WebhookData = Body(...)):
     print(f"Received webhook: {data}")
 
     return {"message": "Webhook received and processed!"}
+
+
+def get_instantly_handler():
+    """
+    Get the InstantlyHandler instance
+    :return: InstantlyHandler
+    """
+    instantly_api_key = os.environ.get("INSTANTLY_API_KEY")
+    if instantly_api_key is None:
+        raise HTTPException(status_code=400, detail="Missing INSTANTLY API KEY in environment")
+    return InstantlyHandler(instantly_api_key)
 
 
 def create_review_conversation_task(conversation_id: str, language: str) -> bool:

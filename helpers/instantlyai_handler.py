@@ -1,4 +1,6 @@
 from dotenv import load_dotenv
+from typing import List
+from models.instantly_lead import Lead
 import requests
 import os
 
@@ -22,11 +24,16 @@ class InstantlyHandler:
             return response.json()
         response.raise_for_status()
 
-    def add_contact_to_campaign(self, campaign_id, contact_data):
-        """Add a contact/lead to a specific campaign."""
-        print(contact_data)
+    def add_leads_to_campaign(self, campaign_id: str, leads: List[Lead]):
+        """Add a leads to a specific campaign."""
+        payload = {
+            "api_key": self.api_key,
+            "campaign_id": campaign_id,
+            "skip_if_in_workspace": False,
+            "leads": leads
+        }
         endpoint = f"{self.base_url}/lead/add"
-        response = requests.post(endpoint, data=contact_data, auth=("", self.api_key), headers=self.headers)
+        response = requests.post(endpoint, data=payload, headers=self.headers)
 
         if 200 <= response.status_code < 300:
             return response.json()
