@@ -1,3 +1,4 @@
+import json
 from dotenv import load_dotenv
 from typing import List
 from models.instantly_lead import Lead
@@ -26,15 +27,14 @@ class InstantlyHandler:
 
     def add_leads_to_campaign(self, campaign_id: str, leads: List[Lead]):
         """Add a leads to a specific campaign."""
-        payload = {
+        payload = json.dumps({
             "api_key": self.api_key,
             "campaign_id": campaign_id,
             "skip_if_in_workspace": False,
-            "leads": leads
-        }
+            "leads": [lead.model_dump(exclude_none=True) for lead in leads]
+        })
         endpoint = f"{self.base_url}/lead/add"
         response = requests.post(endpoint, data=payload, headers=self.headers)
-
         if 200 <= response.status_code < 300:
             return response.json()
         raise Exception(f"Error {response.status_code}: {response.text}")
