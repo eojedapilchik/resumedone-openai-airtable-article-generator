@@ -29,7 +29,8 @@ class GoogleEmailService:
 
     def authenticate_google_account(self):
         creds = None
-        folder_path = os.getenv("PROJECT_FOLDER")
+        folder_path = self.parent_dir
+        print(f"folder_path: {folder_path}")
         token_path = f"{folder_path}/token_{self.account_name}.json"
 
         if os.path.exists(token_path):
@@ -244,3 +245,27 @@ class GoogleEmailService:
         print(f'Number of threads replied: {len(threads_replied)}')
         print(f'Number of threads skipped: {skipped} - bounced emails')
         return threads_replied
+
+    def watch_inbox(self, user_id="me", topic_name="projects/lead-automation-397419/topics/InboxMessages"):
+        try:
+            response = self.service.users().watch(userId=user_id,
+                                                  body={
+                                                      'labelIds': ['INBOX'],
+                                                      'topicName': topic_name,
+                                                      'labelFilterAction': 'include'
+                                                  }).execute()
+            print(response)
+        except HttpError as error:
+            print(f'An error occurred: {error}')
+
+    def stop_watching_inbox(self, user_id="me"):
+        try:
+            response = self.service.users().stop(userId=user_id).execute()
+            print(response)
+        except HttpError as error:
+            print(f'An error occurred: {error}')
+
+
+if __name__ == "__main__":
+    service = GoogleEmailService("alcides")
+    service.stop_watching_inbox()
