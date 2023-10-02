@@ -7,9 +7,10 @@ from pydantic import BaseModel
 from helpers.airtable_handler import AirtableHandler
 from helpers.openai_handler import OpenAIHandler, OpenAIException
 from helpers.frontapp_handler import FrontAppHandler, FrontAppError
+from helpers.lemlist_handler import LemlistHandler
+from helpers.instantlyai_handler import InstantlyHandler
 from categorize_articles import update_category
 from typing import Optional
-from helpers.lemlist_handler import LemlistHandler
 from fastapi.middleware.cors import CORSMiddleware
 from tasks import add_contacts_to_campaigns
 from models.lemlist_webhook import WebhookData
@@ -94,6 +95,17 @@ async def get_campaigns():
     if lemlist_api_key is None:
         return {"status": "missing lemlist api key"}
     handler = LemlistHandler(lemlist_api_key)
+    campaigns = handler.list_campaigns()
+    return {"status": "success",
+            "campaigns": campaigns}
+
+
+@app.get("/instantly/campaigns/")
+async def get_campaigns():
+    instantly_api_key = os.environ.get("INSTANTLY_API_KEY")
+    if instantly_api_key is None:
+        return {"status": "missing instantly api key"}
+    handler = InstantlyHandler(instantly_api_key)
     campaigns = handler.list_campaigns()
     return {"status": "success",
             "campaigns": campaigns}

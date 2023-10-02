@@ -52,7 +52,7 @@ class LemlistHandler:
 
 # Example usage:
 if __name__ == "__main__":
-    lemlist_api_key = "7d36c29ebd1135a65a23a3f75b0c13b9"
+    lemlist_api_key = os.getenv('LEMLIST_API_KEY')
 
     handler = LemlistHandler(lemlist_api_key)
 
