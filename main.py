@@ -129,7 +129,7 @@ async def add_leads_to_campaign(campaign_id: str, leads: List[Lead]):
 @app.post("/instantly/events/")
 async def process_webhook(data: InstantlyWebhookData):
     print("Received data")
-    print(data)
+    print(data.model_dump_json(exclude_none=True))
     return {"status": "success"}
 
 
