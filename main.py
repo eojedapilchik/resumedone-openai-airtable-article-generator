@@ -15,6 +15,7 @@ from models.instantly_lead import Lead
 from fastapi.middleware.cors import CORSMiddleware
 from tasks import add_contacts_to_campaigns
 from models.lemlist_webhook import WebhookData
+from models.instantly_webhook import InstantlyWebhookData
 
 app = FastAPI()
 
@@ -123,6 +124,13 @@ async def add_leads_to_campaign(campaign_id: str, leads: List[Lead]):
     except Exception as e:
         return {"status": "error",
                 "response": str(e)}
+
+
+@app.post("/instantly/events/")
+async def process_webhook(data: InstantlyWebhookData):
+    print("Received data")
+    print(data)
+    return {"status": "success"}
 
 
 @app.post("/webhook/email_replied/")
