@@ -153,12 +153,13 @@ def process_instantly_webhook(data: InstantlyWebhookData):
     if data.event_type == "reply_received":
         handler = get_instantly_handler()
         lead = handler.get_leads_from_campaign(data.campaign_id, data.email)
-        if lead is None:
+        if lead is None or len(lead) <= 0:
             print("No lead found")
             return
-        sequence = lead.get("lead_data", {}).get("sequence_reply", 0)
+        sequence = lead[0].get("lead_data", {}).get("sequence_reply", 0)
         if data.is_first or sequence <= 1:
             print("First email received")
+            # do the price calculation for the backlink
             # process email with openai
             # send email
             # update lead sequence_reply

@@ -10,4 +10,7 @@ class Lead(BaseModel):
     personalization: Optional[str] = None
     phone: Optional[str] = None
     website: Optional[str] = None
-    custom_variables: Optional[Dict] = {"sequence_reply": 0}
+    custom_variables: Optional[Dict] = {
+        "sequence_reply": 0,
+        "price_target": 0
+    }
