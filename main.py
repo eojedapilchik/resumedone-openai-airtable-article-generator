@@ -127,10 +127,12 @@ async def add_leads_to_campaign(campaign_id: str, leads: List[Lead]):
 
 
 @app.post("/instantly/events/")
-async def process_webhook(data: InstantlyWebhookData):
+async def process_webhook(data: InstantlyWebhookData, background_tasks: BackgroundTasks):
     print("Received data")
     print(data.model_dump_json(exclude_none=True))
-    return {"status": "success"}
+    background_tasks.add_task(process_instantly_webhook, data)
+    # get the id of the background task
+    return {"status": "Success. Data is being processed in the background"}
 
 
 @app.post("/webhook/email_replied/")
@@ -145,6 +147,28 @@ async def receive_webhook(data: WebhookData = Body(...)):
     print(f"Received webhook: {data}")
 
     return {"message": "Webhook received and processed!"}
+
+
+def process_instantly_webhook(data: InstantlyWebhookData):
+    if data.event_type == "reply_received":
+        handler = get_instantly_handler()
+        lead = handler.get_leads_from_campaign(data.campaign_id, data.email)
+        if lead is None:
+            print("No lead found")
+            return
+        sequence = lead.get("lead_data", {}).get("sequence_reply", 0)
+        if data.is_first or sequence <= 1:
+            print("First email received")
+            # process email with openai
+            # send email
+            # update lead sequence_reply
+        else:
+            print("Not first email")
+            # send email
+            # update lead sequence_reply
+        print("Processed reply")
+    else:
+        print("Not a reply")
 
 
 def get_instantly_handler():

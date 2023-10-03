@@ -39,6 +39,48 @@ class InstantlyHandler:
             return response.json()
         raise Exception(f"Error {response.status_code}: {response.text}")
 
+    def get_leads_from_campaign(self, campaign_id: str, email: str):
+        """Get leads from a specific campaign."""
+        response = requests.get(
+            f"{self.base_url}/lead/get?api_key={self.api_key}&campaign_id={campaign_id}&email={email}",
+            headers=self.headers
+        )
+        if response.status_code == 200:
+            return response.json()
+        response.raise_for_status()
+
+    def update_leads_sequence_reply(self, campaign_id: str, email: str, value: int):
+        """Update leads custom variables from a specific campaign."""
+        data = {
+            "api_key": self.api_key,
+            "campaign_id": campaign_id,
+            "email": email,
+            "variables": {
+                "sequence_reply": value
+            }
+        }
+        try:
+            response = requests.post(
+                f"{self.base_url}/lead/data/update",
+                json=data,
+                headers=self.headers
+            )
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                return response.json()
+        except requests.HTTPError:
+            # If the update fails, try the set operation
+            response = requests.post(
+                f"{self.base_url}/lead/data/set",  # Assuming this is the endpoint for the set operation
+                json=data,
+                headers=self.headers
+            )
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                return response.json()
+
 
 # Example usage:
 if __name__ == "__main__":
@@ -49,3 +91,7 @@ if __name__ == "__main__":
     # List all campaigns
     campaigns = handler.list_campaigns()
     print(campaigns)
+    lead = handler.get_leads_from_campaign('4f128968-5d88-404e-b261-7407c439a1a3', 'eojedapilchik@gmail.com')
+    print(lead)
+    handler.update_leads_sequence_reply('4f128968-5d88-404e-b261-7407c439a1a3', 'vijay@resumedone.io', 1)
+
