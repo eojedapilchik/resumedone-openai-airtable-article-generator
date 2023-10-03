@@ -43,7 +43,7 @@ last_index = None
 class Article(BaseModel):
     job_name: str
     record_id: str
-    language: Optional[str]
+    language: Optional[str] = None
 
 
 @app.post("/article-texts/")

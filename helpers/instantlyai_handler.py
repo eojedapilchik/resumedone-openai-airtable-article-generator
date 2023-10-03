@@ -1,6 +1,6 @@
 import json
 from dotenv import load_dotenv
-from typing import List
+from typing import List, Union
 from models.instantly_lead import Lead
 import requests
 import os
@@ -49,14 +49,17 @@ class InstantlyHandler:
             return response.json()
         response.raise_for_status()
 
-    def update_leads_sequence_reply(self, campaign_id: str, email: str, value: int):
+    def update_leads_sequence_reply(self, campaign_id: str, email: str, sequence_reply: int):
+        self.update_leads_variable(campaign_id, email, "sequence_reply", sequence_reply)
+
+    def update_leads_variable(self, campaign_id: str, email: str, variable: str, value: Union[int, str, float]):
         """Update leads custom variables from a specific campaign."""
         data = {
             "api_key": self.api_key,
             "campaign_id": campaign_id,
             "email": email,
             "variables": {
-                "sequence_reply": value
+                variable: value
             }
         }
         try:
@@ -91,7 +94,6 @@ if __name__ == "__main__":
     # List all campaigns
     campaigns = handler.list_campaigns()
     print(campaigns)
-    lead = handler.get_leads_from_campaign('4f128968-5d88-404e-b261-7407c439a1a3', 'eojedapilchik@gmail.com')
+    lead = handler.get_leads_from_campaign('1718d2c1-88ae-41c9-8006-b8928905e457', 'eojedapilchik@gmail.com')
     print(lead)
-    handler.update_leads_sequence_reply('4f128968-5d88-404e-b261-7407c439a1a3', 'vijay@resumedone.io', 1)
-
+    handler.update_leads_sequence_reply('1718d2c1-88ae-41c9-8006-b8928905e457', 'eojedapilchik@gmail.com', 1)

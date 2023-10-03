@@ -66,8 +66,8 @@ def update_category(record_id, article_name):
                                      f"Sport & Fitness, Transport & Logistics, Industry, Public Safety and Defense, "
                                      f"Education")
     print(response)
-    cateogry_from_list = extract_word(response)
-    category = cateogry_from_list if cateogry_from_list else response
+    category_from_list = extract_word(response)
+    category = category_from_list if category_from_list else response
     if category:
         print(f"Category: |{category}|")
         airtable_handler.update_record(record_id, {"fldfuuMpUoLq5r4Hk": category})
