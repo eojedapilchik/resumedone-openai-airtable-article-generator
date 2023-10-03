@@ -1,4 +1,4 @@
-from pydantic import BaseModel, UUID4, HttpUrl
+from pydantic import BaseModel, HttpUrl
 from typing import Optional
 from datetime import datetime
 
@@ -6,13 +6,13 @@ from datetime import datetime
 class InstantlyWebhookData(BaseModel):
     timestamp: datetime
     event_type: str
-    workspace: UUID4
-    campaign_id: UUID4
+    workspace: str
+    campaign_id: str
     unibox_url: Optional[HttpUrl] = None
-    campaign_name: str
-    step: int
+    campaign_name: str = None
+    step: int = 0
     email_account: str
-    reply_text_snippet: str
+    reply_text_snippet: str = None
     is_first: Optional[bool] = False
     lead_email: str
     email: str
