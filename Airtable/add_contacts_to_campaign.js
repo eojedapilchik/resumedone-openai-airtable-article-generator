@@ -1,12 +1,12 @@
 output.markdown('# Add contacts to Lemlist Campaign');
-output.text(` Fetching Campaigns from Lemlist...`);
+output.text(` Fetching Campaigns from Instantly...`);
 const CONTACT_FIELDS = {
     email: "fld6je9gVo6dVhGUI",
     website: "fldIxYmFniIfkkXdy",
     campaignName: "fld66SDLvy5qJcjTr",
     addedToCampaign: "fldoLj2GP27lq9PSq"
 }
-const BASE_URL = 'https://starfish-app-2sc3d.ondigitalocean.app/lemlist/campaigns';
+const BASE_URL = 'https://starfish-app-2sc3d.ondigitalocean.app/instantly/campaigns';
 
 const campaigns_data = await fetchCampaigns();
 const campaign_names = campaigns_data.reduce((acum, value)=>{
@@ -69,8 +69,8 @@ async function addContactsToCampaign(campaign){
         output.text(`A total of ${total_contacts} will be added to the Campaign`);
         for (let i = 0; i < total_contacts; i++){
             let email = contacts_query.records[i].getCellValueAsString(CONTACT_FIELDS.email);
-            let companyDomain = contacts_query.records[i].getCellValueAsString(CONTACT_FIELDS.website);
-            const response = await postContactToCampaign(campaign._id, { email, companyDomain });
+            let website = contacts_query.records[i].getCellValueAsString(CONTACT_FIELDS.website);
+            const response = await postContactToCampaign(campaign.id, { email, website });
             if(response.status === "success"){
                 await updateContactAddedToCampaign(contacts_query.records[i].id, campaign.name);
             }else{
@@ -83,11 +83,12 @@ async function addContactsToCampaign(campaign){
 }
 
 async function postContactToCampaign(campaignId, contactData) {
+
     try {
-        const response = await fetch(`${BASE_URL}/${campaignId}/contacts/`, {
+        const response = await fetch(`${BASE_URL}/${campaignId}/leads/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(contactData)
+            body: JSON.stringify([contactData])
         });
 
         if (!response.ok) {

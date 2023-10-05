@@ -35,7 +35,7 @@ const CONTACTS_FIELDS = {
 
 };
 
-let websites_to_fetch = await TABLE_WEBSITE.selectRecordsAsync({fields: [WEBSITE_FIELDS.website]});
+let websites_to_fetch = await TABLE_WEBSITE.selectRecordsAsync({fields: [WEBSITE_FIELDS.website, WEBSITE_FIELDS.contacts]});
 let live_websites = await TABLE_LIVE_LINKS.selectRecordsAsync({fields: [LIVE_LINK_FIELDS.website]})
 const live_link_records = live_websites.records.map( website => website.getCellValueAsString(LIVE_LINK_FIELDS.website));
 
@@ -48,7 +48,9 @@ if(websites_to_fetch.records.length){
     for(let i=0; i<total_websites; i++){
         const contact_founds = []
         const website_url = website_records[i].getCellValueAsString(WEBSITE_FIELDS.website);
-        if(!website_url){
+        const email_contacts = website_records[i].getCellValue(WEBSITE_FIELDS.contacts)
+        if(!website_url || email_contacts?.length >0){
+            console.log(`Skipping website ${website_url} it already has emails`)
             continue;
         }
         const progress = Math.round(((i+1)/total_websites) * 100)
@@ -60,14 +62,18 @@ if(websites_to_fetch.records.length){
         const contacts = await checkContactData(website_url);
         if (contacts.length){
             console.log(` A total of ${contacts.length} contacts were found for ${website_url} Progress: ${progress}%`);
-            contacts.forEach((contact) => {
-                contact_founds.push({
-                    fields:{
-                        [CONTACTS_FIELDS.email]: contact.value,
-                        [CONTACTS_FIELDS.website]: [{id: website_records[i].id}]
-                    }
-                })
-            });
+            for (const contact of contacts) {
+                const contact_email = contact.value
+                if(isEmailAddress(contact_email) && await isValidEmail(contact_email)){
+                    contact_founds.push({
+                        fields:{
+                            [CONTACTS_FIELDS.email]: contact.value,
+                            [CONTACTS_FIELDS.website]: [{id: website_records[i].id}]
+                        }
+                    })
+                }
+
+            };
 
             await TABLE_CONTACTS.createRecordsAsync(contact_founds);
         }else{
@@ -116,4 +122,27 @@ async function checkContactData(website_url){
         return [];
     }
 
+}
+
+
+async function isValidEmail(email) {
+    const url = `https://emailvalidation.abstractapi.com/v1/?api_key=42fa2ed99eaa40ada6e891a0b95cd49e&email=${email}`;
+    try {
+        const response = await fetch(url);
+        if(response.ok) {
+            const data = await response.json();
+            console.debug(data);
+            return data.deliverability === 'DELIVERABLE'
+        } else {
+            console.error(`HTTP Error: ${response.status}`, response)
+            return false
+        }
+    } catch(error) {
+        console.error(`Fetch error: ${error.message}`);
+        return false;
+    }
+}
+
+function isEmailAddress(email){
+    return email.includes('@') && email.length > 3;
 }
