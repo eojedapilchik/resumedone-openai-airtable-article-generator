@@ -17,7 +17,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from tasks import add_contacts_to_campaigns
 from models.lemlist_webhook import WebhookData
 from models.instantly_webhook import InstantlyWebhookData
-from starlette.requests import Request
 
 app = FastAPI()
 
@@ -171,15 +170,13 @@ def update_url(record_id: str, job_name: str, language: str):
     at_token = os.environ.get("AIRTABLE_PAT_SEO_WK")
     airtable_handler = AirtableHandler("tblSwYjjy85nHa6yd", "appkwM6hcso08YF3I", at_token)
     openai_handler = OpenAIHandler()
-    print(language)
     if not language or prompts.get('url', {}).get(language) is None:
         print(f"Language not supported for url generation {language}")
         return
     prompt = prompts['url'][language].replace("((title of card))", job_name)
-    print(prompt)
     response = openai_handler.prompt(prompt).lower()
     if len(response) > 0:
-        print(response)
+        print(f"url ai response {response}")
         airtable_handler.update_record(record_id, {"fldeVySqEkmppVMK7": response})
     else:
         print("No response received from OpenAI")
