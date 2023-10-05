@@ -175,7 +175,7 @@ def update_url(record_id: str, job_name: str, language: str):
     if not language or prompts.get('url', {}).get(language) is None:
         print(f"Language not supported for url generation {language}")
         return
-    prompt = prompts['url']['French'].replace("((title of card))", job_name)
+    prompt = prompts['url'][language].replace("((title of card))", job_name)
     print(prompt)
     response = openai_handler.prompt(prompt).lower()
     if len(response) > 0:
