@@ -9,6 +9,7 @@ from helpers.openai_handler import OpenAIHandler, OpenAIException
 from helpers.frontapp_handler import FrontAppHandler, FrontAppError
 from helpers.lemlist_handler import LemlistHandler
 from helpers.instantlyai_handler import InstantlyHandler
+from helpers.prompts import prompts
 from categorize_articles import update_category
 from typing import Optional, List
 from models.instantly_lead import Lead
@@ -16,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from tasks import add_contacts_to_campaigns
 from models.lemlist_webhook import WebhookData
 from models.instantly_webhook import InstantlyWebhookData
+from starlette.requests import Request
 
 app = FastAPI()
 
@@ -59,6 +61,15 @@ async def create_article_sections(background_tasks: BackgroundTasks, article: Ar
 async def update_article_category(background_tasks: BackgroundTasks, article: Article):
     if article.record_id and article.job_name:
         background_tasks.add_task(update_category, article.record_id, article.job_name)
+        return {"status": "processing AI categorization for article: " + article.job_name}
+    else:
+        return {"status": "missing data"}
+
+
+@app.post("/article/url/")
+async def create_article_url(background_tasks: BackgroundTasks, article: Article):
+    if article.record_id and article.job_name:
+        background_tasks.add_task(update_url, article.record_id, article.job_name, article.language)
         return {"status": "processing AI categorization for article: " + article.job_name}
     else:
         return {"status": "missing data"}
@@ -135,6 +146,13 @@ async def process_webhook(data: InstantlyWebhookData, background_tasks: Backgrou
     return {"status": "Success. Data is being processed in the background"}
 
 
+# @app.post("/events/emailreplied/")
+# async def process_webhook2(request: Request):
+#     body = await request.json()
+#     print("Received data:", body)
+#     return {"status": "Success. Data is being processed in the background"}
+
+
 @app.post("/webhook/email_replied/")
 async def receive_webhook(data: WebhookData = Body(...)):
     # sendUserEmail = data.sendUserEmail
@@ -147,6 +165,24 @@ async def receive_webhook(data: WebhookData = Body(...)):
     print(f"Received webhook: {data}")
 
     return {"message": "Webhook received and processed!"}
+
+
+def update_url(record_id: str, job_name: str, language: str):
+    at_token = os.environ.get("AIRTABLE_PAT_SEO_WK")
+    airtable_handler = AirtableHandler("tblSwYjjy85nHa6yd", "appkwM6hcso08YF3I", at_token)
+    openai_handler = OpenAIHandler()
+    print(language)
+    if not language or prompts.get('url', {}).get(language) is None:
+        print(f"Language not supported for url generation {language}")
+        return
+    prompt = prompts['url']['French'].replace("((title of card))", job_name)
+    print(prompt)
+    response = openai_handler.prompt(prompt).lower()
+    if len(response) > 0:
+        print(response)
+        airtable_handler.update_record(record_id, {"fldeVySqEkmppVMK7": response})
+    else:
+        print("No response received from OpenAI")
 
 
 def process_instantly_webhook(data: InstantlyWebhookData):
@@ -165,8 +201,10 @@ def process_instantly_webhook(data: InstantlyWebhookData):
             # update lead sequence_reply
         else:
             print("Not first email")
+
             # send email
             # update lead sequence_reply
+        handler.update_leads_sequence_reply(data.campaign_id, data.email, int(sequence) + 1)
         print("Processed reply")
     else:
         print("Not a reply")
