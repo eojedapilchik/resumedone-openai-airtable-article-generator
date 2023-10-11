@@ -4,6 +4,8 @@ prompts = {
                   "entre chaque mots suivre la structure des exemples suivants: "
                   "cv-d-acheteur-junior "
                   "cv-de-barista-starbucks "
-                  "mettre que la transformation pas l original",
+                  "cv-de -plombier "
+                  "cv-d-architecte "
+                  "cv-d-acteur-de-serie ",
     },
 }
