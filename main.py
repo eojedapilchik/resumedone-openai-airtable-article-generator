@@ -402,12 +402,10 @@ def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: float 
         return None
     responses = [response["response"] for response in responses_list]
     try:
-        print(str(log_text))
         fields = {
             "fld7vn74uF0ZxQhXe": ''.join(responses),
             "fldus7pUQ61eM1ymY": elapsed_time_bf_at,
             "fldsnne20dP9s0nUz": "To Review",
-            "fldpnyajPwaBXM6Zb": str(log_text),
         }
         airtable_handler.update_record(record_id, fields)
         print("[+] Airtable record updated successfully.")
