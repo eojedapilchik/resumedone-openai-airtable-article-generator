@@ -54,8 +54,10 @@ def main():
     print(f"Took {time.time() - start_time} seconds to process {total} articles")
 
 
-def update_category(record_id, article_name, base_id = "appkwM6hcso08YF3I"):
+def update_category(record_id, article_name, base_id = None ):
 
+    if not base_id:
+        base_id = "appkwM6hcso08YF3I"
     config = load_config(base_id)
 
     if not config:
