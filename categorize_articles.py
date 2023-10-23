@@ -1,5 +1,6 @@
 import os
 import time
+import json
 import re
 import requests
 from dotenv import load_dotenv
@@ -53,9 +54,19 @@ def main():
     print(f"Took {time.time() - start_time} seconds to process {total} articles")
 
 
-def update_category(record_id, article_name):
-    at_token = os.environ.get("AIRTABLE_PAT_SEO_WK")
-    airtable_handler = AirtableHandler("tblSwYjjy85nHa6yd", "appkwM6hcso08YF3I", at_token)
+def update_category(record_id, article_name, base_id = "appkwM6hcso08YF3I"):
+
+    config = load_config(base_id)
+
+    if not config:
+        print(f"Error: Configurations for base_id {base_id} are not found.")
+        return
+
+    at_token = os.environ.get(config["api_key"])
+    table_id = config["table"]
+    field = config["fields"]["category"]
+
+    airtable_handler = AirtableHandler(table_id, base_id, at_token)
     openai_handler = OpenAIHandler()
     response = openai_handler.prompt(f"Categorize a blog post with this title: {article_name} "
                                      f"according to one of the following 18 categories - do not add any"
@@ -70,8 +81,22 @@ def update_category(record_id, article_name):
     category = category_from_list if category_from_list else response
     if category:
         print(f"Category: |{category}|")
-        airtable_handler.update_record(record_id, {"fldfuuMpUoLq5r4Hk": category})
+        airtable_handler.update_record(record_id, {field: category})
         print(f"[+] Processed article: {article_name} \n\n")
+
+
+
+def load_config(base_id):
+    # Try loading from an environment variable first
+    config_str = os.environ.get("CONFIG")
+    if config_str:
+        config = json.loads(config_str)
+        return config.get(base_id)
+
+    # If not found in environment variables, load from a JSON file
+    with open("config.json", 'r') as file:
+        config = json.load(file)
+        return config.get(base_id)
 
 
 def get_title_and_meta_description(url):

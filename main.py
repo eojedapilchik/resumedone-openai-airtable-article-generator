@@ -46,6 +46,7 @@ class Article(BaseModel):
     job_name: str
     record_id: str
     language: Optional[str] = None
+    base_id: Optional[str] = None
 
 
 @app.post("/article-texts/")
@@ -60,7 +61,7 @@ async def create_article_sections(background_tasks: BackgroundTasks, article: Ar
 @app.post("/article-category/")
 async def update_article_category(background_tasks: BackgroundTasks, article: Article):
     if article.record_id and article.job_name:
-        background_tasks.add_task(update_category, article.record_id, article.job_name)
+        background_tasks.add_task(update_category, article.record_id, article.job_name, article.base_id)
         return {"status": "processing AI categorization for article: " + article.job_name}
     else:
         return {"status": "missing data"}
@@ -178,7 +179,7 @@ def update_url(record_id: str, job_name: str, language: str):
     response = openai_handler.prompt(prompt).lower()
     if len(response) > 0:
         print(f"url ai response {response}")
-        airtable_handler.update_record(record_id, {"fldeVySqEkmppVMK7": response})
+        airtable_handler.update_record(record_id, {"fldeVySqEkmppVMK7": response}, )
     else:
         print("No response received from OpenAI")
 

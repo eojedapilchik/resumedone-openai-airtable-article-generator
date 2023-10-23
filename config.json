@@ -1,0 +1,16 @@
+{
+  "appkwM6hcso08YF3I": {
+    "table": "tblSwYjjy85nHa6yd",
+    "fields": {
+      "category": "fldfuuMpUoLq5r4Hk"
+    },
+    "api_key": "AIRTABLE_PAT_SEO_WK"
+  },
+  "appTs3dO069XQP6AT": {
+    "table": "tblpWGFIZf88LIFJw",
+    "fields": {
+      "category": "fldFdNGl9xaqFBoO5"
+    },
+    "api_key": "AIRTABLE_PERSONAL_ACCESS_TOKEN"
+  }
+}
