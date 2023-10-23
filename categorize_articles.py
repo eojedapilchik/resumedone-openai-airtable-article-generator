@@ -56,8 +56,6 @@ def main():
 
 def update_category(record_id, article_name, base_id = None ):
 
-    if not base_id:
-        base_id = "appkwM6hcso08YF3I"
     config = load_config(base_id)
 
     if not config:
