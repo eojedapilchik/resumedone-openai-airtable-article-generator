@@ -1,6 +1,7 @@
 import os
 import time
 import random
+import datetime
 from fastapi import FastAPI, BackgroundTasks, Body, HTTPException
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -401,11 +402,14 @@ def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: float 
         print("[-] Insufficient responses provided.")
         return None
     responses = [response["response"] for response in responses_list]
+    current_utc_time = datetime.datetime.utcnow()
+    iso8601_date = current_utc_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     try:
         fields = {
             "fld7vn74uF0ZxQhXe": ''.join(responses),
             "fldus7pUQ61eM1ymY": elapsed_time_bf_at,
             "fldsnne20dP9s0nUz": "To Review",
+            "fldTk3wrPUWrx0AjP" : iso8601_date,
         }
         airtable_handler.update_record(record_id, fields)
         print("[+] Airtable record updated successfully.")
