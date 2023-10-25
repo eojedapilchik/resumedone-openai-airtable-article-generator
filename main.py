@@ -2,6 +2,7 @@ import os
 import time
 import random
 import datetime
+import re
 from fastapi import FastAPI, BackgroundTasks, Body, HTTPException
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -167,6 +168,45 @@ async def receive_webhook(data: WebhookData = Body(...)):
 
     return {"message": "Webhook received and processed!"}
 
+def add_p_tags(text):
+    # Split the input text into paragraphs based on two or more newlines
+    paragraphs = re.split(r'\n\s*\n', text.strip(), flags=re.DOTALL)
+
+    # Wrap each paragraph with <p> tags if they are missing
+    for i in range(len(paragraphs)):
+        if not paragraphs[i].startswith('<p>') and not paragraphs[i].endswith('</p>'):
+            paragraphs[i] = '<p>' + paragraphs[i] + '</p>'
+
+    # Join the paragraphs back together with two newlines between each
+    return '\n\n'.join(paragraphs)
+
+
+def convert_bullets_to_html(text):
+    def replace_with_ul(match):
+        items = match.group(0).strip().split('\n')
+        li_items = ['<li>' + item[2:].strip() + '</li>' for item in items]
+        return '<ul>\n' + '\n'.join(li_items) + '\n</ul>'
+
+    # Replace bulleted lists with <ul><li>...</li></ul>
+    text = re.sub(r'(?m)^\s*-\s*.+((\n\s*-.*)*)', replace_with_ul, text)
+    return text
+
+def convert_numbers_to_ol(text):
+    def replace_with_ol(match):
+        items = match.group(0).strip().split('\n')
+        li_items = ['<li>' + re.sub(r'^\d+\.\s*', '', item).strip() + '</li>' for item in items]
+        return '<ol>\n' + '\n'.join(li_items) + '\n</ol>'
+
+    # Replace numbered lists with <ol><li>...</li></ol>
+    text = re.sub(r'(?m)^\s*\d+\.\s*.+((\n\s*\d+\..*)*)', replace_with_ol, text)
+    return text
+
+
+def add_html_tags(text):
+    text = add_p_tags(text)
+    text = convert_bullets_to_html(text)
+    text = convert_numbers_to_ol(text)
+    return text
 
 def update_url(record_id: str, job_name: str, language: str):
     at_token = os.environ.get("AIRTABLE_PAT_SEO_WK")
@@ -369,6 +409,7 @@ def process_prompts(prompts: list, record_id: str):
                 print(f" - Processing prompt...{index} -> Attempt {i + 1}/{retries}")
                 response = openai_handler.prompt(prompt.get("prompt"))
                 print(f"[+] Received response from OpenAI {index}")
+                response = add_html_tags(response)
                 update_airtable_record_log(record_id, f"Received response from OpenAI - # {index}")
                 prompt_info = f"\n[SECTION {prompt['position']}] \n {prompt['section']} \n[PROMPT] \n " \
                               f"{prompt['prompt']}\n"
