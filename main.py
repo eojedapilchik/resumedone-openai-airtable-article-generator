@@ -420,6 +420,7 @@ def process_prompts(prompts: list, record_id: str):
     retries = int(os.getenv("OPENAI_RETRIES", 3))
     openai_handler = OpenAIHandler()
     index = 0
+    black_list = ["Meta Description", "Meta Title"]
     for prompt in prompts:
         index += 1
         for i in range(retries):
@@ -433,9 +434,18 @@ def process_prompts(prompts: list, record_id: str):
                 log_text += prompt_info
                 if show_debug:
                     print(prompt_info + f"\n\n[RESPONSE] {response}\n\n")
+                if prompt["section"] in black_list:
+                    response = remove_double_quotes(response)
+                    prompt["response"] = f"\n{response}\r\n"
+                    break
+                if prompt["type"] and prompt["type"] == "Example":
+                    response = add_html_tags(remove_double_quotes(response))
+                    prompt["response"] = f'<div class="blue-highlight">\n<div class="blue-highlight-flex">\n<div>{response}</div>\n</div>\n</div><br>'
+                    break
                 if prompt["type"] and prompt["type"] != "":
                     response = remove_unwrapped_headers(remove_double_quotes(response))
                     prompt["response"] = f"\n<{prompt['type']}>{response}</{prompt['type']}>\r\n"
+                    break
                 else:
                     response = add_html_tags(remove_double_quotes(response))
                     prompt["response"] = f"\n{response}\r\n"
