@@ -172,12 +172,10 @@ def add_p_tags(text):
     # Split the input text into paragraphs based on two or more newlines
     paragraphs = re.split(r'\n\s*\n', text.strip(), flags=re.DOTALL)
 
-    # Wrap each paragraph with <p> tags if they are missing
     for i in range(len(paragraphs)):
-        if not paragraphs[i].startswith('<p>') and not paragraphs[i].endswith('</p>'):
+        if not re.match(r'^\s*<\w+>', paragraphs[i]):
             paragraphs[i] = '<p>' + paragraphs[i] + '</p>'
 
-    # Join the paragraphs back together with two newlines between each
     return '\n\n'.join(paragraphs)
 
 
@@ -202,10 +200,24 @@ def convert_numbers_to_ol(text):
     return text
 
 
+def remove_double_quotes(text):
+    text = re.sub(r'^\"', '', text)
+    text = re.sub(r'\"$', '', text)
+    return text
+
+
+def remove_empty_html_tags(text):
+    pattern = r'<(\w+)\s*>\s*</\1>'
+    cleaned_text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+
+    return cleaned_text
+
+
 def add_html_tags(text):
-    text = add_p_tags(text)
     text = convert_bullets_to_html(text)
     text = convert_numbers_to_ol(text)
+    text = add_p_tags(text)
+    text = remove_empty_html_tags(text)
     return text
 
 def update_url(record_id: str, job_name: str, language: str):
@@ -348,6 +360,12 @@ async def add_contacts_to_campaign(campaign_id: str, contacts_data: list):
             "responses": f"Contacts are being added in the background. Task id: {task.id}"}
 
 
+def remove_unwrapped_headers(text):
+    pattern = r'\bh[123]\b'
+    cleaned_text = re.sub(pattern, '', text)
+
+    return cleaned_text
+
 def process_article(article: Article):
     start_time = time.time()
     prompts = get_prompts(article.language)
@@ -409,7 +427,6 @@ def process_prompts(prompts: list, record_id: str):
                 print(f" - Processing prompt...{index} -> Attempt {i + 1}/{retries}")
                 response = openai_handler.prompt(prompt.get("prompt"))
                 print(f"[+] Received response from OpenAI {index}")
-                response = add_html_tags(response)
                 update_airtable_record_log(record_id, f"Received response from OpenAI - # {index}")
                 prompt_info = f"\n[SECTION {prompt['position']}] \n {prompt['section']} \n[PROMPT] \n " \
                               f"{prompt['prompt']}\n"
@@ -417,8 +434,10 @@ def process_prompts(prompts: list, record_id: str):
                 if show_debug:
                     print(prompt_info + f"\n\n[RESPONSE] {response}\n\n")
                 if prompt["type"] and prompt["type"] != "":
+                    response = remove_unwrapped_headers(remove_double_quotes(response))
                     prompt["response"] = f"\n<{prompt['type']}>{response}</{prompt['type']}>\r\n"
                 else:
+                    response = add_html_tags(remove_double_quotes(response))
                     prompt["response"] = f"\n{response}\r\n"
                 break
             except OpenAIException as e:
