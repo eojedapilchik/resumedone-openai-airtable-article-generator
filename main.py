@@ -420,7 +420,11 @@ def process_prompts(prompts: list, record_id: str):
     retries = int(os.getenv("OPENAI_RETRIES", 3))
     openai_handler = OpenAIHandler()
     index = 0
-    black_list = ["Meta Description", "Meta Title"]
+    metadata_list = ["meta_title", "meta_description"]
+    metadata = {
+        "meta_title": "",
+        "meta_description": ""
+    }
     for prompt in prompts:
         index += 1
         for i in range(retries):
@@ -434,9 +438,8 @@ def process_prompts(prompts: list, record_id: str):
                 log_text += prompt_info
                 if show_debug:
                     print(prompt_info + f"\n\n[RESPONSE] {response}\n\n")
-                if prompt["section"] in black_list:
-                    response = remove_double_quotes(response)
-                    prompt["response"] = f"\n{response}\r\n"
+                if prompt["section"] in metadata_list:
+                    metadata[prompt["section"]] = remove_double_quotes(response)
                     break
                 if prompt["type"] and prompt["type"] == "Example":
                     response = add_html_tags(remove_double_quotes(response))
@@ -462,6 +465,9 @@ def process_prompts(prompts: list, record_id: str):
                                   f"*NO CONTENT WAS GENERATED FOR SECTION {prompt['section']}* \n\n"
                     log_text += failed_text
                     prompt["response"] = failed_text
+            finally:
+                if metadata:
+                    update_metadata(record_id, metadata)
     return prompts
 
 
@@ -488,6 +494,20 @@ def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: float 
     except Exception as e:
         print(f"[!!] Error updating record: {str(e)}")
         print(responses_list)
+
+
+def update_metadata(record_id, metadata: dict):
+    print("[+] Updating Airtable record...")
+    airtable_handler = AirtableHandler(data_table)
+    try:
+        fields = {
+            "fldIvmfoPfkJbYDcy": metadata.get("meta_description"),
+            "fld4v3esUgKDDH9aI": metadata.get("meta_title"),
+        }
+        airtable_handler.update_record(record_id, fields)
+        print("[+] Airtable record updated successfully.")
+    except Exception as e:
+        print(f"[!!] Error updating record: {str(e)}")
 
 
 def update_airtable_record_log(record_id, new_status: str = 'Error'):
