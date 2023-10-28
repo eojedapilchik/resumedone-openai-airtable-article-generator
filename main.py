@@ -391,7 +391,7 @@ def process_article(article: Article):
         print("No responses found")
         return None
 
-    update_airtable_record_log(article.record_id, "Responses retrieved and sorted")
+    #update_airtable_record_log(article.record_id, "Responses retrieved and sorted")
     if show_debug:
         sections = [record["section"] for record in responses]
         print(sections)
@@ -410,6 +410,7 @@ def get_prompts(language: str):
     records = airtable_handler.get_records()
     if records:
         prompts = [{
+            "response": "",
             "section": record.get("fields").get("Section Name"),
             "prompt": record.get("fields").get(f"Prompt {language}"),
             "position": record.get("fields").get("Position"),
@@ -428,17 +429,20 @@ def process_prompts(prompts: list, article: Article):
     retries = int(os.getenv("OPENAI_RETRIES", 3))
     openai_handler = OpenAIHandler()
     index = 0
-    metadata_list = ["meta_title", "meta_description"]
+    metadata_list = ["meta title", "meta description"]
     metadata = {
-        "meta_title": "",
-        "meta_description": ""
+        metadata_list[0]: "",
+        metadata_list[1]: ""
     }
     for prompt in prompts:
         index += 1
         for i in range(retries):
             try:
                 print(f" - Processing prompt...{index} -> Attempt {i + 1}/{retries}")
-                response = openai_handler.prompt(prompt.get("prompt"))
+                prompt_text = prompt.get("prompt")
+                response = ""
+                if prompt_text is not None or prompt_text != "":
+                    response = openai_handler.prompt(prompt.get("prompt"))
                 print(f"[+] Received response from OpenAI {index}")
                 update_airtable_record_log(record_id, f"Received response from OpenAI - # {index}")
                 prompt_info = f"\n[SECTION {prompt['position']}] \n {prompt['section']} \n[PROMPT] \n " \
@@ -446,16 +450,16 @@ def process_prompts(prompts: list, article: Article):
                 log_text += prompt_info
                 if show_debug:
                     print(prompt_info + f"\n\n[RESPONSE] {response}\n\n")
-                if prompt["section"] in metadata_list:
-                    metadata[prompt["section"]] = remove_double_quotes(response)
+                if prompt["type"] in metadata_list:
+                    metadata[prompt["type"]] = remove_double_quotes(response)
                     break
-                if prompt["type"] and prompt["type"] == "Image":
+                if prompt["type"].lower().strip() == "image":
                     image_url = images_url.pop(0) if len(images_url) > 0 else ""
                     if image_url:
                         response = f'<img src="{image_url}"/>'
                         prompt["response"] = f"\n{response}\r\n"
                     break
-                if prompt["type"] and prompt["type"] == "Example":
+                if prompt["type"].lower().strip() == "example":
                     response = add_html_tags(remove_double_quotes(response))
                     prompt[
                         "response"] = f'<div class="grey-div">\n<div class="grey-div">\n<div>{response}</div>\n</div>\n</div><br>'
@@ -480,9 +484,9 @@ def process_prompts(prompts: list, article: Article):
                                   f"*NO CONTENT WAS GENERATED FOR SECTION {prompt['section']}* \n\n"
                     log_text += failed_text
                     prompt["response"] = failed_text
-            finally:
-                if metadata:
-                    update_metadata(record_id, metadata)
+
+        if metadata and index == 2:
+            update_metadata(record_id, metadata)
     return prompts
 
 
@@ -496,12 +500,14 @@ def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: float 
     responses = [response["response"] for response in responses_list]
     current_utc_time = datetime.datetime.utcnow()
     iso8601_date = current_utc_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
     try:
         fields = {
             "fld7vn74uF0ZxQhXe": ''.join(responses),
             "fldus7pUQ61eM1ymY": elapsed_time_bf_at,
             "fldsnne20dP9s0nUz": "To Review",
             "fldTk3wrPUWrx0AjP": iso8601_date,
+            "fldpnyajPwaBXM6Zb": log_text if log_text != "" else "Success"
         }
         airtable_handler.update_record(record_id, fields)
         print("[+] Airtable record updated successfully.")
@@ -516,8 +522,8 @@ def update_metadata(record_id, metadata: dict):
     airtable_handler = AirtableHandler(data_table)
     try:
         fields = {
-            "fldIvmfoPfkJbYDcy": metadata.get("meta_description"),
-            "fld4v3esUgKDDH9aI": metadata.get("meta_title"),
+            "fldIvmfoPfkJbYDcy": metadata.get("meta description"),
+            "fld4v3esUgKDDH9aI": metadata.get("meta title"),
         }
         airtable_handler.update_record(record_id, fields)
         print("[+] Airtable record updated successfully.")
