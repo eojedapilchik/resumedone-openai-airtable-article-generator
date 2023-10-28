@@ -1,7 +1,8 @@
+import time
 from abc import ABC, abstractmethod
 from typing import Dict, Optional
 from models.article import Article
-from helpers.openai_handler import OpenAIHandler
+from helpers.openai_handler import OpenAIHandler, OpenAIException
 from helpers.html_utils import (add_p_tags, convert_bullets_to_html,
                                 convert_numbers_to_ol, remove_double_quotes, remove_empty_html_tags)
 
@@ -14,7 +15,21 @@ class PromptCommand(ABC):
             raise ValueError("openai_handler cannot be None")
         prompt_text = prompt.get("prompt")
         if prompt_text is not None or prompt_text != "":
-            prompt["response"] = openai_handler.prompt(prompt.get("prompt"))
+            for i in range(retries):
+                try:
+                    prompt["response"] = openai_handler.prompt(prompt_text)
+                    break
+                except OpenAIException as e:
+                    if i < retries - 1:  # i is zero indexed
+                        time.sleep((2 ** i))  # exponential backoff, sleep for 2^i seconds
+                        print(f"Retrying OpenAI request...")
+                        continue
+                    else:
+                        print("OpenAI request failed after " + str(retries) + " attempts.")
+                        failed_text = f"\n\n *OPENAI REQUEST FAILED AFTER {retries} ATTEMPTS* \n" \
+                                      f"*NO CONTENT WAS GENERATED FOR SECTION {prompt['section']}* \n\n"
+                        prompt["response"] = ""
+                        prompt["error"] = failed_text
 
 class MetaDataPromptCommand(PromptCommand):
     def execute(self, prompt: Dict, retries: int, article: Article,
