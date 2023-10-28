@@ -1,4 +1,5 @@
 import time
+import os
 from abc import ABC, abstractmethod
 from typing import Dict, Optional
 from models.article import Article
@@ -11,6 +12,7 @@ class PromptCommand(ABC):
     def execute(self, prompt: Dict, retries: int, article: Article,
                 openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
         openai_handler = openai_handler or OpenAIHandler()
+        show_debug = os.environ.get("SHOW_DEBUG") == "True"
         if openai_handler is None:
             raise ValueError("openai_handler cannot be None")
         prompt_text = prompt.get("prompt")
@@ -18,6 +20,10 @@ class PromptCommand(ABC):
             for i in range(retries):
                 try:
                     prompt["response"] = openai_handler.prompt(prompt_text)
+                    if show_debug:
+                        prompt_info = f"\n[SECTION {prompt['position']}] \n {prompt['section']} \n[PROMPT] \n " \
+                                      f"{prompt['prompt']}\n"
+                        print(prompt_info + f"\n\n[RESPONSE] {prompt['response']}\n\n")
                     break
                 except OpenAIException as e:
                     if i < retries - 1:  # i is zero indexed
