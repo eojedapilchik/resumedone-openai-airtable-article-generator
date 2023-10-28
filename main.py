@@ -423,6 +423,8 @@ def process_prompts(prompts: list, article: Article):
         metadata_list[0]: "",
         metadata_list[1]: ""
     }
+    images_url_csv = article.image_urls
+    images_url = images_url_csv.split(",") if images_url_csv else []
     for prompt in prompts:
         index += 1
         for i in range(retries):
@@ -443,8 +445,6 @@ def process_prompts(prompts: list, article: Article):
                     metadata[prompt["type"]] = remove_double_quotes(response)
                     break
                 if prompt["type"].lower().strip() == "image":
-                    images_url_csv = article.image_urls
-                    images_url = images_url_csv.split(",") if images_url_csv else []
                     image_url = images_url.pop(0) if len(images_url) > 0 else ""
                     print(f"Image url: {image_url}")
                     if image_url:
@@ -454,7 +454,7 @@ def process_prompts(prompts: list, article: Article):
                 if prompt["type"].lower().strip() == "example":
                     response = add_html_tags(remove_double_quotes(response))
                     prompt[
-                        "response"] = f'<div class="grey-div">\n<div class="grey-div">\n<div>{response}</div>\n</div>\n</div><br>'
+                        "response"] = f'\n<div class="grey-div">\n<div>{response}</div>\n</div><br>\n'
                     break
                 if prompt["type"] and prompt["type"] != "":
                     response = remove_unwrapped_headers(remove_double_quotes(response))
