@@ -5,7 +5,7 @@ import datetime
 import re
 from fastapi import FastAPI, BackgroundTasks, Body, HTTPException
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from models.article import Article
 from helpers.airtable_handler import AirtableHandler
 from helpers.openai_handler import OpenAIHandler, OpenAIException
 from helpers.frontapp_handler import FrontAppHandler, FrontAppError
@@ -13,7 +13,7 @@ from helpers.lemlist_handler import LemlistHandler
 from helpers.instantlyai_handler import InstantlyHandler
 from helpers.prompts import prompts
 from categorize_articles import update_category
-from typing import Optional, List
+from typing import List
 from models.instantly_lead import Lead
 from fastapi.middleware.cors import CORSMiddleware
 from tasks import add_contacts_to_campaigns
@@ -41,14 +41,6 @@ data_table = os.environ.get("TABLE_DATA")
 show_debug = os.environ.get("SHOW_DEBUG") == "True"
 log_text = ""
 last_index = None
-
-
-class Article(BaseModel):
-    job_name: str
-    record_id: str
-    language: Optional[str] = None
-    base_id: Optional[str] = None
-    image_urls: Optional[str] = None
 
 
 @app.post("/article-texts/")
@@ -378,12 +370,11 @@ def process_article(article: Article):
         update_airtable_record_log(article.record_id, "No prompts Retrieved")
         print("No prompts found")
         return None
-    filtered_prompts = [prompt for prompt in prompts if prompt.get("prompt") is not None]
     parsed_prompts = [
-        {**prompt, "prompt": prompt["prompt"].replace("[job_name]", article.job_name)}
-        for prompt in filtered_prompts
+        {**prompt, "prompt": (prompt.get("prompt") or "").replace("[job_name]", article.job_name)}
+        for prompt in prompts if prompt.get("prompt") != ""
     ]
-    # Sort prompts by position or by infinity if position is not set
+
     sorted_prompts = sorted(parsed_prompts, key=lambda x: x["position"] or float("inf"))
     responses = process_prompts(sorted_prompts, article)
     if responses is None:
@@ -455,6 +446,7 @@ def process_prompts(prompts: list, article: Article):
                     break
                 if prompt["type"].lower().strip() == "image":
                     image_url = images_url.pop(0) if len(images_url) > 0 else ""
+                    print(f"Image url: {image_url}")
                     if image_url:
                         response = f'<img src="{image_url}"/>'
                         prompt["response"] = f"\n{response}\r\n"
