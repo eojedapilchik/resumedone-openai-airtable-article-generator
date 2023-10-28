@@ -415,8 +415,6 @@ def get_prompts(language: str):
 def process_prompts(prompts: list, article: Article):
     global log_text
     record_id = article.record_id
-    images_url_csv = article.image_urls
-    images_url = images_url_csv.split(",") if images_url_csv else []
     retries = int(os.getenv("OPENAI_RETRIES", 3))
     openai_handler = OpenAIHandler()
     index = 0
@@ -445,6 +443,8 @@ def process_prompts(prompts: list, article: Article):
                     metadata[prompt["type"]] = remove_double_quotes(response)
                     break
                 if prompt["type"].lower().strip() == "image":
+                    images_url_csv = article.image_urls
+                    images_url = images_url_csv.split(",") if images_url_csv else []
                     image_url = images_url.pop(0) if len(images_url) > 0 else ""
                     print(f"Image url: {image_url}")
                     if image_url:
