@@ -48,6 +48,7 @@ class Article(BaseModel):
     record_id: str
     language: Optional[str] = None
     base_id: Optional[str] = None
+    image_urls: Optional[str] = None
 
 
 @app.post("/article-texts/")
@@ -79,9 +80,9 @@ async def create_article_url(background_tasks: BackgroundTasks, article: Article
 
 @app.get("/article-texts/{record_id}/")
 async def create_article(background_tasks: BackgroundTasks, record_id: str, job_name: str,
-                         language: str):
+                         language: str, image_urls: str = None):
     if record_id and job_name and language:
-        article = Article(record_id=record_id, job_name=job_name, language=language)
+        article = Article(record_id=record_id, job_name=job_name, language=language, image_urls=image_urls)
         background_tasks.add_task(process_article, article)
         return {"status": "processing AI generated sections for article: " + job_name}
     else:
@@ -168,6 +169,7 @@ async def receive_webhook(data: WebhookData = Body(...)):
 
     return {"message": "Webhook received and processed!"}
 
+
 def add_p_tags(text):
     # Split the input text into paragraphs based on two or more newlines
     paragraphs = re.split(r'\n\s*\n', text.strip(), flags=re.DOTALL)
@@ -188,6 +190,7 @@ def convert_bullets_to_html(text):
     # Replace bulleted lists with <ul><li>...</li></ul>
     text = re.sub(r'(?m)^\s*-\s*.+((\n\s*-.*)*)', replace_with_ul, text)
     return text
+
 
 def convert_numbers_to_ol(text):
     def replace_with_ol(match):
@@ -219,6 +222,7 @@ def add_html_tags(text):
     text = add_p_tags(text)
     text = remove_empty_html_tags(text)
     return text
+
 
 def update_url(record_id: str, job_name: str, language: str):
     at_token = os.environ.get("AIRTABLE_PAT_SEO_WK")
@@ -366,6 +370,7 @@ def remove_unwrapped_headers(text):
 
     return cleaned_text
 
+
 def process_article(article: Article):
     start_time = time.time()
     prompts = get_prompts(article.language)
@@ -380,7 +385,7 @@ def process_article(article: Article):
     ]
     # Sort prompts by position or by infinity if position is not set
     sorted_prompts = sorted(parsed_prompts, key=lambda x: x["position"] or float("inf"))
-    responses = process_prompts(sorted_prompts, article.record_id)
+    responses = process_prompts(sorted_prompts, article)
     if responses is None:
         update_airtable_record_log(article.record_id, "No responses found for prompts")
         print("No responses found")
@@ -415,8 +420,11 @@ def get_prompts(language: str):
     return None
 
 
-def process_prompts(prompts: list, record_id: str):
+def process_prompts(prompts: list, article: Article):
     global log_text
+    record_id = article.record_id
+    images_url_csv = article.image_urls
+    images_url = images_url_csv.split(",") if images_url_csv else []
     retries = int(os.getenv("OPENAI_RETRIES", 3))
     openai_handler = OpenAIHandler()
     index = 0
@@ -441,9 +449,16 @@ def process_prompts(prompts: list, record_id: str):
                 if prompt["section"] in metadata_list:
                     metadata[prompt["section"]] = remove_double_quotes(response)
                     break
+                if prompt["type"] and prompt["type"] == "Image":
+                    image_url = images_url.pop(0) if len(images_url) > 0 else ""
+                    if image_url:
+                        response = f'<img src="{image_url}"/>'
+                        prompt["response"] = f"\n{response}\r\n"
+                    break
                 if prompt["type"] and prompt["type"] == "Example":
                     response = add_html_tags(remove_double_quotes(response))
-                    prompt["response"] = f'<div class="blue-highlight">\n<div class="blue-highlight-flex">\n<div>{response}</div>\n</div>\n</div><br>'
+                    prompt[
+                        "response"] = f'<div class="grey-div">\n<div class="grey-div">\n<div>{response}</div>\n</div>\n</div><br>'
                     break
                 if prompt["type"] and prompt["type"] != "":
                     response = remove_unwrapped_headers(remove_double_quotes(response))
@@ -486,7 +501,7 @@ def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: float 
             "fld7vn74uF0ZxQhXe": ''.join(responses),
             "fldus7pUQ61eM1ymY": elapsed_time_bf_at,
             "fldsnne20dP9s0nUz": "To Review",
-            "fldTk3wrPUWrx0AjP" : iso8601_date,
+            "fldTk3wrPUWrx0AjP": iso8601_date,
         }
         airtable_handler.update_record(record_id, fields)
         print("[+] Airtable record updated successfully.")
