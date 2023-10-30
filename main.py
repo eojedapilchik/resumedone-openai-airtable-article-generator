@@ -1,17 +1,17 @@
 import os
 import time
 import random
-import datetime
 import re
 from fastapi import FastAPI, BackgroundTasks, Body, HTTPException
 from dotenv import load_dotenv
+from helpers.article_processor import ArticleProcessor
 from models.article import Article
 from helpers.airtable_handler import AirtableHandler
 from helpers.openai_handler import OpenAIHandler, OpenAIException
 from helpers.frontapp_handler import FrontAppHandler, FrontAppError
 from helpers.lemlist_handler import LemlistHandler
 from helpers.instantlyai_handler import InstantlyHandler
-from helpers.prompts import prompts
+from helpers.prompts_config import prompts_cfg
 from categorize_articles import update_category
 from typing import List
 from models.instantly_lead import Lead
@@ -162,68 +162,14 @@ async def receive_webhook(data: WebhookData = Body(...)):
     return {"message": "Webhook received and processed!"}
 
 
-def add_p_tags(text):
-    # Split the input text into paragraphs based on two or more newlines
-    paragraphs = re.split(r'\n\s*\n', text.strip(), flags=re.DOTALL)
-
-    for i in range(len(paragraphs)):
-        if not re.match(r'^\s*<\w+>', paragraphs[i]):
-            paragraphs[i] = '<p>' + paragraphs[i] + '</p>'
-
-    return '\n\n'.join(paragraphs)
-
-
-def convert_bullets_to_html(text):
-    def replace_with_ul(match):
-        items = match.group(0).strip().split('\n')
-        li_items = ['<li>' + item[2:].strip() + '</li>' for item in items]
-        return '<ul>\n' + '\n'.join(li_items) + '\n</ul>'
-
-    # Replace bulleted lists with <ul><li>...</li></ul>
-    text = re.sub(r'(?m)^\s*-\s*.+((\n\s*-.*)*)', replace_with_ul, text)
-    return text
-
-
-def convert_numbers_to_ol(text):
-    def replace_with_ol(match):
-        items = match.group(0).strip().split('\n')
-        li_items = ['<li>' + re.sub(r'^\d+\.\s*', '', item).strip() + '</li>' for item in items]
-        return '<ol>\n' + '\n'.join(li_items) + '\n</ol>'
-
-    # Replace numbered lists with <ol><li>...</li></ol>
-    text = re.sub(r'(?m)^\s*\d+\.\s*.+((\n\s*\d+\..*)*)', replace_with_ol, text)
-    return text
-
-
-def remove_double_quotes(text):
-    text = re.sub(r'^\"', '', text)
-    text = re.sub(r'\"$', '', text)
-    return text
-
-
-def remove_empty_html_tags(text):
-    pattern = r'<(\w+)\s*>\s*</\1>'
-    cleaned_text = re.sub(pattern, '', text, flags=re.IGNORECASE)
-
-    return cleaned_text
-
-
-def add_html_tags(text):
-    text = convert_bullets_to_html(text)
-    text = convert_numbers_to_ol(text)
-    text = add_p_tags(text)
-    text = remove_empty_html_tags(text)
-    return text
-
-
 def update_url(record_id: str, job_name: str, language: str):
     at_token = os.environ.get("AIRTABLE_PAT_SEO_WK")
     airtable_handler = AirtableHandler("tblSwYjjy85nHa6yd", "appkwM6hcso08YF3I", at_token)
     openai_handler = OpenAIHandler()
-    if not language or prompts.get('url', {}).get(language) is None:
+    if not language or prompts_cfg.get('url', {}).get(language) is None:
         print(f"Language not supported for url generation {language}")
         return
-    prompt = prompts['url'][language].replace("((title of card))", job_name)
+    prompt = prompts_cfg['url'][language].replace("((title of card))", job_name)
     response = openai_handler.prompt(prompt).lower()
     if len(response) > 0:
         print(f"url ai response {response}")
@@ -366,8 +312,9 @@ def remove_unwrapped_headers(text):
 def process_article(article: Article):
     start_time = time.time()
     prompts = get_prompts(article.language)
+    article_processor = ArticleProcessor(OpenAIHandler(), article.record_id, AirtableHandler(data_table))
     if prompts is None:
-        update_airtable_record_log(article.record_id, "No prompts Retrieved")
+        article_processor.update_airtable_record_log(article.record_id, "No prompts Retrieved")
         print("No prompts found")
         return None
     parsed_prompts = [
@@ -376,21 +323,22 @@ def process_article(article: Article):
     ]
 
     sorted_prompts = sorted(parsed_prompts, key=lambda x: x["position"] or float("inf"))
-    responses = process_prompts(sorted_prompts, article)
-    if responses is None:
-        update_airtable_record_log(article.record_id, "No responses found for prompts")
+
+    prompts = article_processor.process(sorted_prompts, article)
+    if prompts is None:
+        article_processor.update_airtable_record_log(article.record_id, "No responses found for prompts")
         print("No responses found")
         return None
 
-    #update_airtable_record_log(article.record_id, "Responses retrieved and sorted")
     if show_debug:
-        sections = [record["section"] for record in responses]
+        sections = [record["section"] for record in prompts]
         print(sections)
-        prompts = [record["prompt"] for record in responses]
+        prompts = [record["prompt"] for record in prompts]
         print(prompts)
+
     end_time = time.time()
     elapsed_time_bf_at = end_time - start_time
-    update_airtable_record(article.record_id, responses, elapsed_time_bf_at)
+    article_processor.update_airtable_record(article.record_id, prompts, elapsed_time_bf_at)
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Elapsed time: {elapsed_time} seconds")
@@ -403,6 +351,7 @@ def get_prompts(language: str):
         prompts = [{
             "response": "",
             "section": record.get("fields").get("Section Name"),
+            "plain_text": "",
             "prompt": record.get("fields").get(f"Prompt {language}"),
             "position": record.get("fields").get("Position"),
             "type": record.get("fields").get("Type", "").lower()
@@ -412,103 +361,6 @@ def get_prompts(language: str):
     return None
 
 
-def process_prompts(prompts: list, article: Article):
-    global log_text
-    record_id = article.record_id
-    retries = int(os.getenv("OPENAI_RETRIES", 3))
-    openai_handler = OpenAIHandler()
-    index = 0
-    metadata_list = ["meta title", "meta description"]
-    metadata = {
-        metadata_list[0]: "",
-        metadata_list[1]: ""
-    }
-    images_url_csv = article.image_urls
-    images_url = images_url_csv.split(",") if images_url_csv else []
-    for prompt in prompts:
-        index += 1
-        for i in range(retries):
-            try:
-                print(f" - Processing prompt...{index} -> Attempt {i + 1}/{retries}")
-                prompt_text = prompt.get("prompt")
-                response = ""
-                if prompt_text is not None or prompt_text != "":
-                    response = openai_handler.prompt(prompt.get("prompt"))
-                print(f"[+] Received response from OpenAI {index}")
-                update_airtable_record_log(record_id, f"Received response from OpenAI - # {index}")
-                prompt_info = f"\n[SECTION {prompt['position']}] \n {prompt['section']} \n[PROMPT] \n " \
-                              f"{prompt['prompt']}\n"
-                log_text += prompt_info
-                if show_debug:
-                    print(prompt_info + f"\n\n[RESPONSE] {response}\n\n")
-                if prompt["type"] in metadata_list:
-                    metadata[prompt["type"]] = remove_double_quotes(response)
-                    break
-                if prompt["type"].lower().strip() == "image":
-                    image_url = images_url.pop(0) if len(images_url) > 0 else ""
-                    print(f"Image url: {image_url}")
-                    if image_url:
-                        response = f'<img src="{image_url}"/>'
-                        prompt["response"] = f"\n{response}\r\n"
-                    break
-                if prompt["type"].lower().strip() == "example":
-                    response = add_html_tags(remove_double_quotes(response))
-                    prompt[
-                        "response"] = f'\n<div class="grey-div">\n<div>{response}</div>\n</div><br>\n'
-                    break
-                if prompt["type"] and prompt["type"] != "":
-                    response = remove_unwrapped_headers(remove_double_quotes(response))
-                    prompt["response"] = f"\n<{prompt['type']}>{response}</{prompt['type']}>\r\n"
-                    break
-                else:
-                    response = add_html_tags(remove_double_quotes(response))
-                    prompt["response"] = f"\n{response}\r\n"
-                break
-            except OpenAIException as e:
-                print("Error: " + str(e))
-                if i < retries - 1:  # i is zero indexed
-                    time.sleep((2 ** i))  # exponential backoff, sleep for 2^i seconds
-                    print(f"Retrying OpenAI request...")
-                    continue
-                else:
-                    print("OpenAI request failed after " + str(retries) + " attempts.")
-                    failed_text = f"\n\n *OPENAI REQUEST FAILED AFTER {retries} ATTEMPTS* \n" \
-                                  f"*NO CONTENT WAS GENERATED FOR SECTION {prompt['section']}* \n\n"
-                    log_text += failed_text
-                    prompt["response"] = failed_text
-
-        if metadata and index == 2:
-            update_metadata(record_id, metadata)
-    return prompts
-
-
-def update_airtable_record(record_id, responses_list, elapsed_time_bf_at: float = 0):
-    global log_text
-    print("[+] Updating Airtable record...")
-    airtable_handler = AirtableHandler(data_table)
-    if len(responses_list) <= 0:
-        print("[-] Insufficient responses provided.")
-        return None
-    responses = [response["response"] for response in responses_list]
-    current_utc_time = datetime.datetime.utcnow()
-    iso8601_date = current_utc_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-
-    try:
-        fields = {
-            "fld7vn74uF0ZxQhXe": ''.join(responses),
-            "fldus7pUQ61eM1ymY": elapsed_time_bf_at,
-            "fldsnne20dP9s0nUz": "To Review",
-            "fldTk3wrPUWrx0AjP": iso8601_date,
-            "fldpnyajPwaBXM6Zb": log_text if log_text != "" else "Success"
-        }
-        airtable_handler.update_record(record_id, fields)
-        print("[+] Airtable record updated successfully.")
-        log_text = ""
-    except Exception as e:
-        print(f"[!!] Error updating record: {str(e)}")
-        print(responses_list)
-
-
 def update_metadata(record_id, metadata: dict):
     print("[+] Updating Airtable record...")
     airtable_handler = AirtableHandler(data_table)
@@ -516,19 +368,6 @@ def update_metadata(record_id, metadata: dict):
         fields = {
             "fldIvmfoPfkJbYDcy": metadata.get("meta description"),
             "fld4v3esUgKDDH9aI": metadata.get("meta title"),
-        }
-        airtable_handler.update_record(record_id, fields)
-        print("[+] Airtable record updated successfully.")
-    except Exception as e:
-        print(f"[!!] Error updating record: {str(e)}")
-
-
-def update_airtable_record_log(record_id, new_status: str = 'Error'):
-    print("[+] Updating Airtable record...")
-    airtable_handler = AirtableHandler(data_table)
-    try:
-        fields = {
-            "fldpnyajPwaBXM6Zb": new_status
         }
         airtable_handler.update_record(record_id, fields)
         print("[+] Airtable record updated successfully.")

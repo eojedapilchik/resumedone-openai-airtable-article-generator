@@ -1,4 +1,4 @@
-prompts = {
+prompts_cfg = {
     'url': {
         "French": "faire une combinaise gramaticallement correcte pour : ((title of card)). bien mettre les - "
                   "entre chaque mots suivre la structure des exemples suivants: "

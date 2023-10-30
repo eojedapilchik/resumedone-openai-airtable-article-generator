@@ -45,3 +45,17 @@ def remove_empty_html_tags(text):
     cleaned_text = re.sub(pattern, '', text, flags=re.IGNORECASE)
 
     return cleaned_text
+
+def remove_unwrapped_headers(text):
+    pattern = r'\bh[123]\b'
+    cleaned_text = re.sub(pattern, '', text)
+
+    return cleaned_text
+
+
+def add_html_tags(text):
+    text = convert_bullets_to_html(text)
+    text = convert_numbers_to_ol(text)
+    text = add_p_tags(text)
+    text = remove_empty_html_tags(text)
+    return text

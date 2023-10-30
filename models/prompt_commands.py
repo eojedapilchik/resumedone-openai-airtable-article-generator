@@ -5,7 +5,7 @@ from typing import Dict, Optional
 from models.article import Article
 from helpers.openai_handler import OpenAIHandler, OpenAIException
 from helpers.html_utils import (add_p_tags, convert_bullets_to_html,
-                                convert_numbers_to_ol, remove_double_quotes, remove_empty_html_tags)
+                                convert_numbers_to_ol, remove_double_quotes, remove_empty_html_tags, add_html_tags, remove_unwrapped_headers)
 
 class PromptCommand(ABC):
     @abstractmethod
@@ -19,7 +19,10 @@ class PromptCommand(ABC):
         if prompt_text is not None or prompt_text != "":
             for i in range(retries):
                 try:
-                    prompt["response"] = openai_handler.prompt(prompt_text)
+                    response = openai_handler.prompt(prompt_text)
+                    prompt["plain_text"] = response
+                    response = remove_double_quotes(response)
+                    prompt["response"] = response
                     if show_debug:
                         prompt_info = f"\n[SECTION {prompt['position']}] \n {prompt['section']} \n[PROMPT] \n " \
                                       f"{prompt['prompt']}\n"
@@ -36,22 +39,27 @@ class PromptCommand(ABC):
                                       f"*NO CONTENT WAS GENERATED FOR SECTION {prompt['section']}* \n\n"
                         prompt["response"] = ""
                         prompt["error"] = failed_text
+                        raise Exception("OpenAI request failed after " + str(retries) + " attempts.")
 
 class MetaDataPromptCommand(PromptCommand):
+
     def execute(self, prompt: Dict, retries: int, article: Article,
                 openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
         super().execute(prompt, retries, article, openai_handler, **kwargs)
         response = prompt.get("response")
         prompt["response"] = "" #remove this line after implementing the logic
-        #TODO: update the record in Airtable with the metadata
+        prompt["metadata"] = {"type": prompt["type"], "value": response}
+        return None#remove this line after implementing the logic
 
 class ImagePromptCommand(PromptCommand):
-    def execute(self, prompt: Dict, retries: int, article: Article, **kwargs) -> None:
-        image_urls_csv = article.get("image_urls", "")
+    def execute(self, prompt: Dict, retries: int, article: Article,
+                openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
+        image_urls_csv = article.image_urls
         images_urls_list = image_urls_csv.split(",") if image_urls_csv else []
         image_url = images_urls_list.pop(0) if len(images_urls_list) > 0 else ""
+        article.image_urls = ",".join(images_urls_list)
         if image_url:
-            prompt["response"] = f'<img src="{image_url}"/>'
+            prompt["response"] = f'<div class="img"><img src="{image_url}"/></div>'
 
 
 class ExamplePromptCommand(PromptCommand):
@@ -59,6 +67,7 @@ class ExamplePromptCommand(PromptCommand):
                 openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
         super().execute(prompt, retries, article, openai_handler, **kwargs)
         response = prompt.get("response")
+        response =  add_html_tags(response)
         prompt["response"] = f'\n<div class="grey-div">\n<div>{response}</div>\n</div><br>\n'
 
 
@@ -71,4 +80,15 @@ class DefaultPromptCommand(PromptCommand):
 
 
 
+class HTMLPromptCommand(PromptCommand):
+    def execute(self, prompt: Dict, retries: int, article: Article,
+                openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
+        super().execute(prompt, retries, article, openai_handler, **kwargs)
+        is_title = prompt.get("type").lower().strip() in ["h1", "h2", "h3"]
+        response = prompt.get("response")
+        if is_title:
+            response = remove_unwrapped_headers(response)
+        else:
+            response = add_html_tags(response)
+        prompt["response"] = f"\n<{prompt['type']}>{response}</{prompt['type']}>\r\n"
 
