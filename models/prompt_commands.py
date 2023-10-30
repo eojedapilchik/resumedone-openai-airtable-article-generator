@@ -30,7 +30,7 @@ class PromptCommand(ABC):
                     break
                 except OpenAIException as e:
                     if i < retries - 1:  # i is zero indexed
-                        time.sleep((2 ** i))  # exponential backoff, sleep for 2^i seconds
+                        time.sleep((10 ** i))  # exponential backoff, sleep for 2^i seconds
                         print(f"Retrying OpenAI request...")
                         continue
                     else:
