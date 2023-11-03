@@ -49,7 +49,7 @@ def remove_empty_html_tags(text):
 
 def remove_unwrapped_headers(text):
     pattern = r'\bh[123]\b'
-    cleaned_text = re.sub(pattern, '', text)
+    cleaned_text = re.sub(pattern, '', text, flags=re.IGNORECASE)
 
     return cleaned_text
 
