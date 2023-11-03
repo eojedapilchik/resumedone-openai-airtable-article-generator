@@ -312,7 +312,8 @@ def remove_unwrapped_headers(text):
 def process_article(article: Article):
     start_time = time.time()
     prompts = get_prompts(article.language)
-    article_processor = ArticleProcessor(OpenAIHandler(), article.record_id, AirtableHandler(data_table))
+    engine = os.environ.get("OPENAI_ENGINE_LATEST", "gpt-4")
+    article_processor = ArticleProcessor(OpenAIHandler(engine), article.record_id, AirtableHandler(data_table))
     if prompts is None:
         article_processor.update_airtable_record_log(article.record_id, "No prompts Retrieved")
         print("No prompts found")

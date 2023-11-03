@@ -2,14 +2,15 @@ import re
 
 
 def add_p_tags(text):
-    # Split the input text into paragraphs based on two or more newlines
-    paragraphs = re.split(r'\n\s*\n', text.strip(), flags=re.DOTALL)
+    # Split the input text into paragraphs based on one or more newlines
+    paragraphs = re.split(r'\n+', text.strip())
 
+    # Wrap each line with <p> tags if it doesn't already start with an HTML tag
     for i in range(len(paragraphs)):
         if not re.match(r'^\s*<\w+>', paragraphs[i]):
             paragraphs[i] = '<p>' + paragraphs[i] + '</p>'
 
-    return '\n\n'.join(paragraphs)
+    return '\n'.join(paragraphs)
 
 
 def convert_bullets_to_html(text):

@@ -20,7 +20,7 @@ class PromptCommand(ABC):
             for i in range(retries):
                 try:
                     response = openai_handler.prompt(prompt_text)
-                    prompt["plain_text"] = response
+                    prompt["plain_text"] = f"{response}\n"
                     response = remove_double_quotes(response)
                     prompt["response"] = response
                     if show_debug:
