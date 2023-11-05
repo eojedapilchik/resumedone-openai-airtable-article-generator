@@ -65,10 +65,12 @@ class ArticleProcessor:
         plain_text_responses = [response["plain_text"] for response in prompts]
         current_utc_time = datetime.datetime.utcnow()
         iso8601_date = current_utc_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        article_html = ''.join(responses)
+        article_html = article_html.replace('""', '\'')
 
         try:
             fields = {
-                "fld7vn74uF0ZxQhXe": ''.join(responses),
+                "fld7vn74uF0ZxQhXe": article_html,
                 "fldus7pUQ61eM1ymY": elapsed_time_bf_at,
                 "fldsnne20dP9s0nUz": "To Review",
                 "fldTk3wrPUWrx0AjP": iso8601_date,
