@@ -21,7 +21,7 @@ class PromptCommand(ABC):
                 try:
                     response = openai_handler.prompt(prompt_text)
                     prompt["plain_text"] = f"{response}\n"
-                    response = remove_start_and_ending_new_lines(remove_double_quotes(response))
+                    response = remove_double_quotes(response)
                     prompt["response"] = response
                     if show_debug:
                         prompt_info = f"\n[SECTION {prompt['position']}] \n {prompt['section']} \n[PROMPT] \n " \
@@ -59,7 +59,7 @@ class ImagePromptCommand(PromptCommand):
         image_url = images_urls_list.pop(0) if len(images_urls_list) > 0 else ""
         article.image_urls = ",".join(images_urls_list)
         if image_url:
-            prompt["response"] = f'<div class="img"><img src="{image_url}"/></div>'
+            prompt["response"] = f'\n<div class="img"><img src="{image_url}"/></div>'
 
 
 class ExamplePromptCommand(PromptCommand):
@@ -68,7 +68,7 @@ class ExamplePromptCommand(PromptCommand):
         super().execute(prompt, retries, article, openai_handler, **kwargs)
         response = prompt.get("response")
         response =  add_html_tags(response)
-        prompt["response"] = f'<div class="grey-div">\n<div>{response}</div>\n</div><br>'
+        prompt["response"] = f'\n<div class="grey-div">\n<div>{response}</div>\n</div><br>'
 
 
 
@@ -90,5 +90,5 @@ class HTMLPromptCommand(PromptCommand):
             response = remove_unwrapped_headers(response)
         else:
             response = add_html_tags(response)
-        prompt["response"] = f"<{prompt['type']}>{response}</{prompt['type']}>"
+        prompt["response"] = f"\n<{prompt['type']}>{response}</{prompt['type']}>"
 
