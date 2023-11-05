@@ -4,8 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Optional
 from models.article import Article
 from helpers.openai_handler import OpenAIHandler, OpenAIException
-from helpers.html_utils import (remove_double_quotes, add_html_tags, remove_unwrapped_headers,
-                                remove_start_and_ending_new_lines)
+from helpers.html_utils import (remove_double_quotes, add_html_tags, remove_unwrapped_headers)
 
 class PromptCommand(ABC):
     @abstractmethod
@@ -59,7 +58,7 @@ class ImagePromptCommand(PromptCommand):
         image_url = images_urls_list.pop(0) if len(images_urls_list) > 0 else ""
         article.image_urls = ",".join(images_urls_list)
         if image_url:
-            prompt["response"] = f'\n<div class="img"><img src="{image_url}"/></div>'
+            prompt["response"] = f'\n<div class=\'img\'><img src=\'{image_url}\'/></div>'
 
 
 class ExamplePromptCommand(PromptCommand):
@@ -68,7 +67,7 @@ class ExamplePromptCommand(PromptCommand):
         super().execute(prompt, retries, article, openai_handler, **kwargs)
         response = prompt.get("response")
         response =  add_html_tags(response)
-        prompt["response"] = f'\n<div class="grey-div">\n<div>{response}</div>\n</div><br>'
+        prompt["response"] = f'\n<div class=\'grey-div\'>\n<div>{response}</div>\n</div><br>\n'
 
 
 
@@ -90,5 +89,5 @@ class HTMLPromptCommand(PromptCommand):
             response = remove_unwrapped_headers(response)
         else:
             response = add_html_tags(response)
-        prompt["response"] = f"\n<{prompt['type']}>{response}</{prompt['type']}>"
+        prompt["response"] = f"\n<{prompt['type']}>{response}</{prompt['type']}>\r\n"
 
