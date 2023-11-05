@@ -72,7 +72,7 @@ class ArticleProcessor:
                 "fldus7pUQ61eM1ymY": elapsed_time_bf_at,
                 "fldsnne20dP9s0nUz": "To Review",
                 "fldTk3wrPUWrx0AjP": iso8601_date,
-                "fldLgR2ao2astuLbs": '\n'.join(plain_text_responses),
+                "fldLgR2ao2astuLbs": ''.join(plain_text_responses),
                 "fldpnyajPwaBXM6Zb": log_text if log_text != "" else "Success"
             }
             self.airtable_handler.update_record(record_id, fields)

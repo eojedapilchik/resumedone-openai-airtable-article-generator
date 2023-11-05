@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 from typing import Dict, Optional
 from models.article import Article
 from helpers.openai_handler import OpenAIHandler, OpenAIException
-from helpers.html_utils import (add_p_tags, convert_bullets_to_html,
-                                convert_numbers_to_ol, remove_double_quotes, remove_empty_html_tags, add_html_tags, remove_unwrapped_headers)
+from helpers.html_utils import (remove_double_quotes, add_html_tags, remove_unwrapped_headers,
+                                remove_start_and_ending_new_lines)
 
 class PromptCommand(ABC):
     @abstractmethod
@@ -21,7 +21,7 @@ class PromptCommand(ABC):
                 try:
                     response = openai_handler.prompt(prompt_text)
                     prompt["plain_text"] = f"{response}\n"
-                    response = remove_double_quotes(response)
+                    response = remove_start_and_ending_new_lines(remove_double_quotes(response))
                     prompt["response"] = response
                     if show_debug:
                         prompt_info = f"\n[SECTION {prompt['position']}] \n {prompt['section']} \n[PROMPT] \n " \
@@ -68,7 +68,7 @@ class ExamplePromptCommand(PromptCommand):
         super().execute(prompt, retries, article, openai_handler, **kwargs)
         response = prompt.get("response")
         response =  add_html_tags(response)
-        prompt["response"] = f'\n<div class="grey-div">\n<div>{response}</div>\n</div><br>\n'
+        prompt["response"] = f'<div class="grey-div">\n<div>{response}</div>\n</div><br>'
 
 
 
@@ -90,5 +90,5 @@ class HTMLPromptCommand(PromptCommand):
             response = remove_unwrapped_headers(response)
         else:
             response = add_html_tags(response)
-        prompt["response"] = f"\n<{prompt['type']}>{response}</{prompt['type']}>\r\n"
+        prompt["response"] = f"<{prompt['type']}>{response}</{prompt['type']}>"
 

@@ -60,3 +60,6 @@ def add_html_tags(text):
     text = add_p_tags(text)
     text = remove_empty_html_tags(text)
     return text
+
+def remove_start_and_ending_new_lines(text):
+    return re.sub(r'^[\r\n]+|[\r\n]+$', '', text)
