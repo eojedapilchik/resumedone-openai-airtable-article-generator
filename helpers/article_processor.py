@@ -22,6 +22,8 @@ class ArticleProcessor:
                 print(f"Prompt {index}/{len(prompts)} in progress...")
                 command.execute(prompt, self.retries, article=article, openai_handler=self.openai_handler)
                 print(f"(x) Prompt {index} of {len(prompts)} completed successfully.")
+                self.update_airtable_record_log(self.record_id,
+                                                new_status=f'Prompt {index} of {len(prompts)} completed successfully.')
             except OpenAIException as e:
                 continue
             except Exception as e:
