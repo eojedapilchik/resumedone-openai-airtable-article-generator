@@ -21,6 +21,7 @@ class ArticleProcessor:
             try:
                 print(f"Prompt {index}/{len(prompts)} in progress...")
                 command.execute(prompt, self.retries, article=article, openai_handler=self.openai_handler)
+                self.log_text += f"\n -- [PROMPT {index}]:  {prompt.get('prompt')}.\n"
                 print(f"(x) Prompt {index} of {len(prompts)} completed successfully.")
                 self.update_airtable_record_log(self.record_id,
                                                 new_status=f'Prompt {index} of {len(prompts)} completed successfully.')
@@ -58,7 +59,7 @@ class ArticleProcessor:
             print(f"[!!] Error updating Airtable log for record: {str(e)}")
 
     def update_airtable_record(self, record_id: str, prompts: List[Dict],
-                               elapsed_time_bf_at: float = 0, log_text: str = ""):
+                               elapsed_time_bf_at: float = 0):
         print("[+] Updating Airtable record...")
         if len(prompts) <= 0:
             print("[-] Insufficient responses provided.")
@@ -77,7 +78,7 @@ class ArticleProcessor:
                 "fldsnne20dP9s0nUz": "To Review",
                 "fldTk3wrPUWrx0AjP": iso8601_date,
                 "fldLgR2ao2astuLbs": ''.join(plain_text_responses),
-                "fldpnyajPwaBXM6Zb": log_text if log_text != "" else "Success"
+                "fldpnyajPwaBXM6Zb": self.log_text if self.log_text != "" else "Success"
             }
             self.airtable_handler.update_record(record_id, fields)
             print("[+] Airtable record updated successfully.")
