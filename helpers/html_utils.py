@@ -41,6 +41,10 @@ def remove_double_quotes(text):
     return text
 
 
+def remove_double_astrix(text):
+    text = re.sub(r'\*\*', '', text)
+    return text
+
 def remove_empty_html_tags(text):
     pattern = r'<(\w+)\s*>\s*</\1>'
     cleaned_text = re.sub(pattern, '', text, flags=re.IGNORECASE)
@@ -59,6 +63,7 @@ def add_html_tags(text):
     text = convert_numbers_to_ol(text)
     text = add_p_tags(text)
     text = remove_empty_html_tags(text)
+    text = remove_double_astrix(text)
     return text
 
 def remove_start_and_ending_new_lines(text):
