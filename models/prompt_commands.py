@@ -58,7 +58,11 @@ class ImagePromptCommand(PromptCommand):
         image_url = images_urls_list.pop(0) if len(images_urls_list) > 0 else ""
         article.image_urls = ",".join(images_urls_list)
         if image_url:
-            prompt["response"] = f'\n<div class=\'img\'><img src=\'{image_url}\'/></div>'
+            prompt["response"] = (f'\n<figure class="w-richtext-figure-type-image w-richtext-align-center" style="max-width:626px">'
+                                  f'    <div class=\'img\'>'
+                                  f'        <img src=\'{image_url}\'/>'
+                                  f'    </div>'
+                                  f'</figure>')
 
 
 class ExamplePromptCommand(PromptCommand):
@@ -83,10 +87,13 @@ class HTMLPromptCommand(PromptCommand):
     def execute(self, prompt: Dict, retries: int, article: Article,
                 openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
         super().execute(prompt, retries, article, openai_handler, **kwargs)
-        is_title = prompt.get("type").lower().strip() in ["h1", "h2", "h3"]
+        tag_type = prompt.get("type").lower().strip()
+        is_title = tag_type in ["h1", "h2", "h3"]
         response = prompt.get("response")
         if is_title:
             response = remove_unwrapped_headers(response)
+            if tag_type in ["h2"]:
+                response = f"<br>" + response + f"<br>"
         else:
             response = add_html_tags(response)
         prompt["response"] = f"\n<{prompt['type']}>{response}</{prompt['type']}>\r\n"
