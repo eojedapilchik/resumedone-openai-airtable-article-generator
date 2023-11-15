@@ -15,6 +15,7 @@ class PromptCommand(ABC):
         if openai_handler is None:
             raise ValueError("openai_handler cannot be None")
         prompt_text = prompt.get("prompt")
+        prompt_text = prompt_text.strip() if prompt_text else ""
         if prompt_text is not None or prompt_text != "":
             for i in range(retries):
                 try:
@@ -80,6 +81,13 @@ class DefaultPromptCommand(PromptCommand):
                 openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
         # Processing logic for image prompts
         super().execute(prompt, retries, article, openai_handler, **kwargs)
+
+
+class InternalReferenceSectionCommand(PromptCommand):
+    def execute(self, prompt: Dict, retries: int, article: Article,
+                openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
+        prompt["response"] = f"<div id='internal-refs'>{article.internal_refs}<div>" if article.internal_refs else ""
+
 
 
 

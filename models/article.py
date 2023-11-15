@@ -7,3 +7,4 @@ class Article(BaseModel):
     language: Optional[str] = None
     base_id: Optional[str] = None
     image_urls: Optional[str] = None
+    internal_refs: Optional[str] = None
