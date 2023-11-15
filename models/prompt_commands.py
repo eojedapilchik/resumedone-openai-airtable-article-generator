@@ -86,6 +86,8 @@ class DefaultPromptCommand(PromptCommand):
 class InternalReferenceSectionCommand(PromptCommand):
     def execute(self, prompt: Dict, retries: int, article: Article,
                 openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
+        if not article.internal_refs:
+            return None
         super().execute(prompt, retries, article, openai_handler, **kwargs)
         response = prompt.get("response", "")
         prompt["response"] = f"<div id='internal-refs'><p>{response}</p><br>{article.internal_refs}<div>" \
