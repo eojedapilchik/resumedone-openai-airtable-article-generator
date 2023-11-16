@@ -71,12 +71,10 @@ async def create_article_url(background_tasks: BackgroundTasks, article: Article
 
 
 @app.get("/article-texts/{record_id}/")
-async def create_article(background_tasks: BackgroundTasks, record_id: str, job_name: str,
-                         language: str, image_urls: str = None):
-    if record_id and job_name and language:
-        article = Article(record_id=record_id, job_name=job_name, language=language, image_urls=image_urls)
+async def create_article(background_tasks: BackgroundTasks, article: Article):
+    if article.job_name and article.language and article.record_id:
         background_tasks.add_task(process_article, article)
-        return {"status": "processing AI generated sections for article: " + job_name}
+        return {"status": "processing AI generated sections for article: " + article.job_name}
     else:
         return {"status": "missing data"}
 
