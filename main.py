@@ -2,7 +2,7 @@ import os
 import time
 import random
 import re
-from fastapi import FastAPI, BackgroundTasks, Body, HTTPException
+from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, Request, Depends
 from dotenv import load_dotenv
 from helpers.article_processor import ArticleProcessor
 from models.article import Article
@@ -70,9 +70,14 @@ async def create_article_url(background_tasks: BackgroundTasks, article: Article
         return {"status": "missing data"}
 
 
+async def query_params_to_article(request: Request):
+    query_params = dict(request.query_params)
+    return Article(**query_params)
+
+
 @app.get("/article-texts/{record_id}/")
-async def create_article(background_tasks: BackgroundTasks, article: Article):
-    if article.job_name and article.language and article.record_id:
+async def create_article(background_tasks: BackgroundTasks, article: Article = Depends(query_params_to_article)):
+    if article.record_id and article.job_name and article.language:
         background_tasks.add_task(process_article, article)
         return {"status": "processing AI generated sections for article: " + article.job_name}
     else:
