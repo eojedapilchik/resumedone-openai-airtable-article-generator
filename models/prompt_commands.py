@@ -57,7 +57,8 @@ class ImagePromptCommand(PromptCommand):
         image_urls_csv = article.image_urls
         images_urls_list = image_urls_csv.split(",") if image_urls_csv else []
         image_url = images_urls_list.pop(0) if len(images_urls_list) > 0 else ""
-        article.image_urls = ",".join(images_urls_list)
+        article.image_urls = ",".join(images_urls_list) if len(images_urls_list) > 0 else ""
+        image_url = image_url.strip() if image_url else ""
         if image_url:
             prompt["response"] = (f'\n<figure class="w-richtext-figure-type-image w-richtext-align-center" style="max-width:626px">'
                                   f'    <div class=\'img\'>'
