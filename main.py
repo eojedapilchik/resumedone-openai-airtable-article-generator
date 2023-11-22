@@ -320,12 +320,8 @@ def process_article(article: Article):
         article_processor.update_airtable_record_log(article.record_id, "No prompts Retrieved")
         print("No prompts found")
         return None
-    parsed_prompts = [
-        {**prompt, "prompt": (prompt.get("prompt") or "").replace("[job_name]", article.job_name)}
-        for prompt in prompts if prompt.get("prompt") != ""
-    ]
 
-    sorted_prompts = sorted(parsed_prompts, key=lambda x: x["position"] or float("inf"))
+    sorted_prompts = sorted(prompts, key=lambda x: x["position"] or float("inf"))
 
     prompts = article_processor.process(sorted_prompts, article)
     if prompts is None:
@@ -358,7 +354,7 @@ def get_prompts(article: Article):
             "response": "",
             "section": record.get("fields").get("Section Name"),
             "plain_text": "",
-            "prompt": record.get("fields").get(f"Prompt {article.language}", ""),
+            "prompt": record.get("fields").get(f"Prompt {article.language}", "").replace("[job_name]", article.job_name),
             "position": record.get("fields").get("Position"),
             "type": record.get("fields").get("Type", "").lower()
             if record.get("fields").get("Type", "").lower() != "body" else ""
