@@ -312,7 +312,7 @@ def remove_unwrapped_headers(text):
 def process_article(article: Article):
     start_time = time.time()
     print(f"Processing Article: {article.job_name} id {article.record_id} type: {article.type}")
-    prompts = get_prompts(article.language, article.type)
+    prompts = get_prompts(article)
     engine = os.environ.get("OPENAI_ENGINE_LATEST", "gpt-4")
     article_processor = ArticleProcessor(OpenAIHandler(engine), article.record_id, AirtableHandler(data_table))
     if prompts is None:
@@ -346,8 +346,8 @@ def process_article(article: Article):
     print(f"Elapsed time: {elapsed_time} seconds")
 
 
-def get_prompts(language: str, article_type: str = None):
-    if article_type is not None and article_type == "Cover Letter":
+def get_prompts(article: Article):
+    if article.type is not None and article.type == "Cover Letter":
         airtable_handler = AirtableHandler(os.environ.get("TABLE_COVER_LETTER_PROMPTS"))
     else:
         airtable_handler = AirtableHandler(os.environ.get("TABLE_PROMPTS"))
@@ -357,7 +357,7 @@ def get_prompts(language: str, article_type: str = None):
             "response": "",
             "section": record.get("fields").get("Section Name"),
             "plain_text": "",
-            "prompt": record.get("fields").get(f"Prompt {language}"),
+            "prompt": record.get("fields").get(f"Prompt {article.language}", ""),
             "position": record.get("fields").get("Position"),
             "type": record.get("fields").get("Type", "").lower()
             if record.get("fields").get("Type", "").lower() != "body" else ""
