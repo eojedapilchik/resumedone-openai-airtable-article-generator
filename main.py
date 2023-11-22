@@ -36,7 +36,6 @@ app.add_middleware(
 
 load_dotenv()
 
-prompts_table = os.environ.get("TABLE_PROMPTS")
 data_table = os.environ.get("TABLE_DATA")
 show_debug = os.environ.get("SHOW_DEBUG") == "True"
 log_text = ""
@@ -312,7 +311,8 @@ def remove_unwrapped_headers(text):
 
 def process_article(article: Article):
     start_time = time.time()
-    prompts = get_prompts(article.language)
+    print(f"Processing Article: {article.job_name} id {article.record_id} type: {article.type}")
+    prompts = get_prompts(article.language, article.type)
     engine = os.environ.get("OPENAI_ENGINE_LATEST", "gpt-4")
     article_processor = ArticleProcessor(OpenAIHandler(engine), article.record_id, AirtableHandler(data_table))
     if prompts is None:
@@ -346,8 +346,11 @@ def process_article(article: Article):
     print(f"Elapsed time: {elapsed_time} seconds")
 
 
-def get_prompts(language: str):
-    airtable_handler = AirtableHandler(prompts_table)
+def get_prompts(language: str, article_type: str = None):
+    if article_type is not None and article_type == "Cover Letter":
+        airtable_handler = AirtableHandler(os.environ.get("TABLE_COVER_LETTER_PROMPTS"))
+    else:
+        airtable_handler = AirtableHandler(os.environ.get("TABLE_PROMPTS"))
     records = airtable_handler.get_records()
     if records:
         prompts = [{

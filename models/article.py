@@ -8,3 +8,4 @@ class Article(BaseModel):
     base_id: Optional[str] = None
     image_urls: Optional[str] = None
     internal_refs: Optional[str] = None
+    type: Optional[str] = None
