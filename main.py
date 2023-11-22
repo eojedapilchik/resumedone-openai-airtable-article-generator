@@ -2,7 +2,7 @@ import os
 import time
 import random
 import re
-from fastapi import FastAPI, BackgroundTasks, Body, HTTPException
+from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, Query
 from dotenv import load_dotenv
 from helpers.article_processor import ArticleProcessor
 from models.article import Article
@@ -71,10 +71,11 @@ async def create_article_url(background_tasks: BackgroundTasks, article: Article
 
 @app.get("/article-texts/{record_id}/")
 async def create_article(background_tasks: BackgroundTasks, record_id: str, job_name: str,
-                         language: str, image_urls: str = None, internal_refs: str = None):
+                         language: str, image_urls: str = None, internal_refs: str = None,
+                         article_type: str = Query(None, alias="type")):
     if record_id and job_name and language:
         article = Article(record_id=record_id, job_name=job_name, language=language, image_urls=image_urls,
-                          internal_refs=internal_refs)
+                          internal_refs=internal_refs, type=article_type)
         background_tasks.add_task(process_article, article)
         return {"status": "processing AI generated sections for article: " + job_name}
     else:
