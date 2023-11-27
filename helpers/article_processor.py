@@ -4,6 +4,8 @@ from typing import List, Dict
 from models.article import Article
 from models.prompt_command_factory import PromptCommandFactory
 from helpers.openai_handler import OpenAIException
+
+
 class ArticleProcessor:
     def __init__(self, openai_handler, record_id, airtable_handler):
         self.openai_handler = openai_handler
@@ -20,7 +22,8 @@ class ArticleProcessor:
             command = PromptCommandFactory.create_command(prompt_type)
             try:
                 print(f"Prompt {index}/{len(prompts)} in progress...")
-                command.execute(prompt, self.retries, article=article, openai_handler=self.openai_handler)
+                command.execute(prompt, self.retries, article=article, openai_handler=self.openai_handler,
+                                airtable_handler=self.airtable_handler)
                 self.log_text += f"\n -- [PROMPT {index}]:  {prompt.get('prompt')}.\n"
                 print(f"(x) Prompt {index} of {len(prompts)} completed successfully.")
                 self.update_airtable_record_log(self.record_id,
@@ -30,31 +33,15 @@ class ArticleProcessor:
             except Exception as e:
                 print(f"[!!] Error executing command: {str(e)}")
                 continue
-            if prompt.get("metadata"):
-                self.metadata[prompt["metadata"]["type"]] = prompt["metadata"]["value"]
-                self.update_metadata()
 
         return prompts
-
-
-    def update_metadata(self):
-        try:
-            fields = {
-                "fldIvmfoPfkJbYDcy": self.metadata.get("meta description"),
-                "fld4v3esUgKDDH9aI": self.metadata.get("meta title"),
-            }
-            self.airtable_handler.update_record(self.record_id, fields)
-            print("[+] Airtable record updated successfully.")
-        except Exception as e:
-            print(f"[!!] Error updating record: {str(e)}")
 
     def update_airtable_record_log(self, record_id, new_status: str = 'Error'):
         try:
             fields = {
-                "fldpnyajPwaBXM6Zb": new_status
+                "fldpnyajPwaBXM6Zb": new_status,
             }
             self.airtable_handler.update_record(record_id, fields)
-            print("[+] Airtable log updated successfully.")
         except Exception as e:
             print(f"[!!] Error updating Airtable log for record: {str(e)}")
 
@@ -64,7 +51,17 @@ class ArticleProcessor:
         if len(prompts) <= 0:
             print("[-] Insufficient responses provided.")
             return None
-        responses = [response["response"] for response in prompts]
+        # loop through prompts and extract responses
+        responses = []
+        metadata = {}
+        samples = {}
+        for prompt in prompts:
+            if prompt.get("response"):
+                responses.append(prompt.get("response"))
+            if prompt.get("metadata"):
+                metadata[prompt["metadata"]["type"]] = prompt["metadata"]["value"]
+            if prompt.get("sample_cover_letter"):
+                samples["sample_cover_letter"] = prompt.get("sample_cover_letter")
         plain_text_responses = [response["plain_text"] for response in prompts]
         current_utc_time = datetime.datetime.utcnow()
         iso8601_date = current_utc_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
@@ -78,7 +75,10 @@ class ArticleProcessor:
                 "fldsnne20dP9s0nUz": "To Review",
                 "fldTk3wrPUWrx0AjP": iso8601_date,
                 "fldLgR2ao2astuLbs": ''.join(plain_text_responses),
-                "fldpnyajPwaBXM6Zb": self.log_text if self.log_text != "" else "Success"
+                "fldpnyajPwaBXM6Zb": self.log_text if self.log_text != "" else "Success",
+                "fldIvmfoPfkJbYDcy": metadata.get("meta description"),
+                "fld4v3esUgKDDH9aI": metadata.get("meta title"),
+                "fldK0YcZgm3gV4I2l": samples.get("sample_cover_letter") if samples.get("sample_cover_letter") else "",
             }
             self.airtable_handler.update_record(record_id, fields)
             print("[+] Airtable record updated successfully.")
