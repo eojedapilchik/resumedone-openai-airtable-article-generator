@@ -34,8 +34,10 @@ class InstantlyHandler:
             "leads": [lead.model_dump(exclude_none=True) for lead in leads]
         })
         endpoint = f"{self.base_url}/lead/add"
+        print(f"Adding {len(leads)} leads to campaign {campaign_id}...")
         response = requests.post(endpoint, data=payload, headers=self.headers)
         if 200 <= response.status_code < 300:
+            print(f"Leads added successfully to campaign {campaign_id}.")
             return response.json()
         raise Exception(f"Error {response.status_code}: {response.text}")
 
