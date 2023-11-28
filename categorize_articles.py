@@ -35,8 +35,8 @@ def main():
                                          f"Accounting and Finance, Administrative,"
                                          f"Creative and Cultural, Engineering, Food & Catering, Information Technology,"
                                          f"Maintenance & Repair, Marketing, Medical, Other, Retail, Sales, Social Work,"
-                                         f"Sport & Fitness, Transport & Logistics, Industry, Public Safety and Defense, "
-                                         f"Education")
+                                         f"Sport & Fitness, Transport & Logistics, Industry, Public Safety and Defense,"
+                                         f" Education")
         category = extract_word(response)
         if category:
             print(f"Category: |{category}|")
@@ -54,7 +54,7 @@ def main():
     print(f"Took {time.time() - start_time} seconds to process {total} articles")
 
 
-def update_category(record_id, article_name, base_id = None ):
+def update_category(record_id, article_name, base_id=None):
 
     config = load_config(base_id)
 
@@ -83,7 +83,6 @@ def update_category(record_id, article_name, base_id = None ):
         print(f"Category: |{category}|")
         airtable_handler.update_record(record_id, {field: category})
         print(f"[+] Processed article: {article_name} \n\n")
-
 
 
 def load_config(base_id):

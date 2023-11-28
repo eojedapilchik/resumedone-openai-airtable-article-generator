@@ -2,14 +2,17 @@ import time
 import os
 from abc import ABC, abstractmethod
 from typing import Dict, Optional
+from helpers.airtable_handler import AirtableHandler
 from models.article import Article
 from helpers.openai_handler import OpenAIHandler, OpenAIException
 from helpers.html_utils import (remove_double_quotes, add_html_tags, remove_unwrapped_headers)
 
+
 class PromptCommand(ABC):
     @abstractmethod
     def execute(self, prompt: Dict, retries: int, article: Article,
-                openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
+                openai_handler: Optional[OpenAIHandler] = None,
+                airtable_handler: Optional[AirtableHandler] = None, **kwargs) -> None:
         openai_handler = openai_handler or OpenAIHandler()
         show_debug = os.environ.get("SHOW_DEBUG") == "True"
         if openai_handler is None:
@@ -41,15 +44,29 @@ class PromptCommand(ABC):
                         prompt["error"] = failed_text
                         raise Exception("OpenAI request failed after " + str(retries) + " attempts.")
 
+
 class MetaDataPromptCommand(PromptCommand):
 
     def execute(self, prompt: Dict, retries: int, article: Article,
                 openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
         super().execute(prompt, retries, article, openai_handler, **kwargs)
         response = prompt.get("response")
-        prompt["response"] = "" #remove this line after implementing the logic
+        prompt["response"] = ""
         prompt["metadata"] = {"type": prompt["type"], "value": response}
-        return None#remove this line after implementing the logic
+        return None
+
+
+class SampleCoverLetterCommand(PromptCommand):
+    def execute(self, prompt: Dict, retries: int, article: Article,
+                openai_handler: Optional[OpenAIHandler] = None,
+                airtable_handler: Optional[AirtableHandler] = None,
+                **kwargs) -> None:
+        super().execute(prompt, retries, article, openai_handler, **kwargs)
+        response = prompt.get("response")
+        prompt["response"] = ""
+        prompt["sample_cover_letter"] = response
+        return None
+
 
 class ImagePromptCommand(PromptCommand):
     def execute(self, prompt: Dict, retries: int, article: Article,
@@ -60,11 +77,12 @@ class ImagePromptCommand(PromptCommand):
         article.image_urls = ",".join(images_urls_list) if len(images_urls_list) > 0 else ""
         image_url = image_url.strip() if image_url else ""
         if image_url:
-            prompt["response"] = (f'\n<figure class="w-richtext-figure-type-image w-richtext-align-center" style="max-width:626px">'
-                                  f'    <div class=\'img\'>'
-                                  f'        <img src=\'{image_url}\'/>'
-                                  f'    </div>'
-                                  f'</figure>')
+            prompt["response"] = (
+                f'\n<figure class="w-richtext-figure-type-image w-richtext-align-center" style="max-width:626px">'
+                f'    <div class=\'img\'>'
+                f'        <img src=\'{image_url}\'/>'
+                f'    </div>'
+                f'</figure>')
 
 
 class ExamplePromptCommand(PromptCommand):
@@ -72,9 +90,8 @@ class ExamplePromptCommand(PromptCommand):
                 openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
         super().execute(prompt, retries, article, openai_handler, **kwargs)
         response = prompt.get("response")
-        response =  add_html_tags(response)
+        response = add_html_tags(response)
         prompt["response"] = f'\n<div class=\'grey-div\'>\n<div>{response}</div>\n</div><br>\n'
-
 
 
 class DefaultPromptCommand(PromptCommand):
@@ -95,8 +112,6 @@ class InternalReferenceSectionCommand(PromptCommand):
             if article.internal_refs else ""
 
 
-
-
 class HTMLPromptCommand(PromptCommand):
     def execute(self, prompt: Dict, retries: int, article: Article,
                 openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
@@ -111,4 +126,3 @@ class HTMLPromptCommand(PromptCommand):
         else:
             response = add_html_tags(response)
         prompt["response"] = f"\n<{prompt['type']}>{response}</{prompt['type']}>\r\n"
-
