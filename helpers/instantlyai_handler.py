@@ -2,6 +2,7 @@ import json
 from dotenv import load_dotenv
 from typing import List, Union
 from models.instantly_lead import Lead
+import time
 import requests
 import os
 
@@ -35,10 +36,13 @@ class InstantlyHandler:
         })
         endpoint = f"{self.base_url}/lead/add"
         print(f"Adding {len(leads)} leads to campaign {campaign_id}...")
+        start_time = time.time()
         response = requests.post(endpoint, data=payload, headers=self.headers)
         if 200 <= response.status_code < 300:
             print(f"Leads added successfully to campaign {campaign_id}.")
+            print(f"Elapsed time: {time.time() - start_time} seconds.")
             return response.json()
+        print(f"Elapsed time: {time.time() - start_time} seconds.")
         raise Exception(f"Error {response.status_code}: {response.text}")
 
     def get_leads_from_campaign(self, campaign_id: str, email: str):
