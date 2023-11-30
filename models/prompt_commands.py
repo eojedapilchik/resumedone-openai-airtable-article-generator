@@ -64,7 +64,7 @@ class SampleCoverLetterCommand(PromptCommand):
         super().execute(prompt, retries, article, openai_handler, **kwargs)
         response = prompt.get("response")
         prompt["response"] = ""
-        prompt["sample_cover_letter"] = response
+        prompt["sample_cover_letter"] = add_html_tags(response)
         return None
 
 
