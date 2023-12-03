@@ -69,6 +69,15 @@ async def create_article_url(background_tasks: BackgroundTasks, article: Article
         return {"status": "missing data"}
 
 
+@app.get("/article/{record_id}/translate-job/")
+async def translate_job_name(background_tasks: BackgroundTasks, record_id: str, job_name: str):
+    if record_id and job_name:
+        background_tasks.add_task(translate_job, record_id, job_name)
+        return {"status": "processing job name translation for article: " + job_name}
+    else:
+        return {"status": "missing data"}
+
+
 @app.get("/article-texts/{record_id}/")
 async def create_article(background_tasks: BackgroundTasks, record_id: str, job_name: str,
                          language: str, image_urls: str = None, internal_refs: str = None,
@@ -177,6 +186,26 @@ def update_url(record_id: str, job_name: str, language: str):
         airtable_handler.update_record(record_id, {"fldeVySqEkmppVMK7": response}, )
     else:
         print("No response received from OpenAI")
+
+
+def translate_job(record_id, job_name):
+    engine = os.environ.get("OPENAI_ENGINE_LATEST", "gpt-4")
+    openai_handler = OpenAIHandler(engine)
+    if prompts_cfg.get('translate', {}) is None:
+        print(f"A prompt for translation was not found")
+        return None
+    prompt = prompts_cfg['translate'].replace("((title of card))", job_name)
+    response = openai_handler.prompt(prompt).lower()
+    if len(response) > 0:
+        print(f"translation ai response {response}")
+        try:
+            airtable_handler = AirtableHandler(data_table)
+            airtable_handler.update_record(record_id, {"fldUIXxtRzNURofJT": response})
+        except Exception as e:
+            print(f"An error occurred: {e}")
+    else:
+        print("No response received from OpenAI")
+        return None
 
 
 def process_instantly_webhook(data: InstantlyWebhookData):
