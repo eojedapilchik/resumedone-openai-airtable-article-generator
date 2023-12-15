@@ -124,8 +124,6 @@ class HTMLPromptCommand(PromptCommand):
         response = prompt.get("response")
         if is_title:
             response = remove_unwrapped_headers(response)
-            if tag_type in ["h2"]:
-                response = f"<br>" + response + f"<br>"
         else:
             response = add_html_tags(response)
         prompt["response"] = f"\n<{prompt['type']}>{response}</{prompt['type']}>\r\n"
