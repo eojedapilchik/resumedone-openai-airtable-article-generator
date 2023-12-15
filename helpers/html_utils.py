@@ -45,16 +45,19 @@ def remove_double_astrix(text):
     text = re.sub(r'\*\*', '', text)
     return text
 
+
 def remove_empty_html_tags(text):
     pattern = r'<(\w+)\s*>\s*</\1>'
     cleaned_text = re.sub(pattern, '', text, flags=re.IGNORECASE)
 
     return cleaned_text
 
+
 def remove_unwrapped_headers(text):
     pattern = r'\b[hH][123]:?\s*|#{1,3}\s*'
     cleaned_text = re.sub(pattern, '', text, flags=re.IGNORECASE)
-    cleaned_text = cleaned_text.replace("\"","")
+    cleaned_text = cleaned_text.replace("\"", "")
+    cleaned_text = cleaned_text.replace("<>", "")
     return cleaned_text
 
 
@@ -65,6 +68,7 @@ def add_html_tags(text):
     text = remove_empty_html_tags(text)
     text = remove_double_astrix(text)
     return text
+
 
 def remove_start_and_ending_new_lines(text):
     return re.sub(r'^[\r\n]+|[\r\n]+$', '', text)

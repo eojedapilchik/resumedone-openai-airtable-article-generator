@@ -8,4 +8,5 @@ prompts_cfg = {
                   "cv-d-architecte "
                   "cv-d-acteur-de-serie ",
     },
+    "translate": "translate the following text into English: ((title of card))",
 }
