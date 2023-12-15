@@ -5,3 +5,4 @@ __pycache__/
 data/
 credentials_*.json
 token_*.json
+.vscode/
