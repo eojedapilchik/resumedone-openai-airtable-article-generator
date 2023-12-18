@@ -49,10 +49,11 @@ def remove_double_astrix(text):
 def remove_empty_html_tags(text):
     pattern = r'<(\w+)\s*>(\s|\\n|\\r|\\t)*<\/\1>'
     
-    while True:
+    for i in range(3):
         cleaned_text = re.sub(pattern, '', text, flags=re.IGNORECASE)
         if not re.match(pattern, cleaned_text):
             break
+        
     return cleaned_text
 
 
