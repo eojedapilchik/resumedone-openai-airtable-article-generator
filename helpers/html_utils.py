@@ -7,7 +7,7 @@ def add_p_tags(text):
 
     # Wrap each line with <p> tags if it doesn't already start with an HTML tag
     for i in range(len(paragraphs)):
-        if not re.match(r'^\s*<\w+>', paragraphs[i]):
+        if not re.match(r'^\s*<[\/\w]+>', paragraphs[i]):
             paragraphs[i] = '<p>' + paragraphs[i] + '</p>'
 
     return '\n'.join(paragraphs)
@@ -47,9 +47,13 @@ def remove_double_astrix(text):
 
 
 def remove_empty_html_tags(text):
-    pattern = r'<(\w+)\s*>\s*</\1>'
-    cleaned_text = re.sub(pattern, '', text, flags=re.IGNORECASE)
-
+    pattern = r'<(\w+)\s*>(\s|\\n|\\r|\\t)*<\/\1>'
+    
+    for i in range(3):
+        cleaned_text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+        if not re.match(pattern, cleaned_text):
+            break
+        
     return cleaned_text
 
 
