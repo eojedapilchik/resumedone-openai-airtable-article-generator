@@ -375,6 +375,8 @@ def process_article(article: Article):
 def get_prompts(article: Article):
     if article.type is not None and article.type == "Cover Letter":
         airtable_handler = AirtableHandler(os.environ.get("TABLE_COVER_LETTER_PROMPTS"))
+    elif article.type is not None and article.type == "Entry Level":
+        airtable_handler = AirtableHandler(os.environ.get("TABLE_ENTRY_LEVEL_PROMPTS"))
     else:
         airtable_handler = AirtableHandler(os.environ.get("TABLE_PROMPTS"))
     records = airtable_handler.get_records()
@@ -383,7 +385,8 @@ def get_prompts(article: Article):
             "response": "",
             "section": record.get("fields").get("Section Name"),
             "plain_text": "",
-            "prompt": record.get("fields").get(f"Prompt {article.language}", "").replace("[job_name]", article.job_name),
+            "prompt": record.get("fields").get(f"Prompt {article.language}", "").replace("[job_name]",
+                                                                                         article.job_name),
             "position": record.get("fields").get("Position"),
             "type": record.get("fields").get("Type", "").lower()
             if record.get("fields").get("Type", "").lower() != "body" else ""
