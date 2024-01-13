@@ -62,6 +62,7 @@ def remove_unwrapped_headers(text):
     cleaned_text = re.sub(pattern, '', text, flags=re.IGNORECASE)
     cleaned_text = cleaned_text.replace("\"", "")
     cleaned_text = cleaned_text.replace("<>", "")
+    cleaned_text = cleaned_text.replace("</>", "")
     return cleaned_text
 
 
