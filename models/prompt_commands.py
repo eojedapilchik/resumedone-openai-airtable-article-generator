@@ -111,7 +111,7 @@ class InternalReferenceSectionCommand(PromptCommand):
             return None
         super().execute(prompt, retries, article, openai_handler, **kwargs)
         response = prompt.get("response", "")
-        prompt["response"] = f"<div id='internal-refs'><p>{response}</p><br>{article.internal_refs}<div>" \
+        prompt["response"] = f"<div id='internal-refs'><p>{response}</p><br>{article.internal_refs}</div>" \
             if article.internal_refs else ""
 
 
