@@ -16,7 +16,6 @@ from categorize_articles import update_category
 from typing import List
 from models.instantly_lead import Lead
 from fastapi.middleware.cors import CORSMiddleware
-from tasks import add_contacts_to_campaigns
 from models.lemlist_webhook import WebhookData
 from models.instantly_webhook import InstantlyWebhookData
 
@@ -320,18 +319,6 @@ def get_review_prompts(language: str) -> list:
     return review_prompts
 
 
-@app.post("/lemlist/campaigns/contacts/bulk/")
-async def add_contacts_to_campaign(campaign_id: str, contacts_data: list):
-    lemlist_api_key = os.environ.get("LEMLIST_API_KEY")
-    if lemlist_api_key is None:
-        return {"status": "missing lemlist api key"}
-
-    task = add_contacts_to_campaigns.delay(add_contacts_to_campaigns, campaign_id, contacts_data, lemlist_api_key)
-
-    return {"status": "processing",
-            "responses": f"Contacts are being added in the background. Task id: {task.id}"}
-
-
 def remove_unwrapped_headers(text):
     pattern = r'\bh[123]\b'
     cleaned_text = re.sub(pattern, '', text)
@@ -373,26 +360,33 @@ def process_article(article: Article):
 
 
 def get_prompts(article: Article):
-    if article.type is not None and article.type == "Cover Letter":
-        airtable_handler = AirtableHandler(os.environ.get("TABLE_COVER_LETTER_PROMPTS"))
-    elif article.type is not None and article.type == "Entry Level":
-        airtable_handler = AirtableHandler(os.environ.get("TABLE_ENTRY_LEVEL_PROMPTS"))
-    else:
-        airtable_handler = AirtableHandler(os.environ.get("TABLE_PROMPTS"))
+    article_type_name_parsed = article.type.upper().strip().replace(' ', '_')
+    table_env_variable_name = f"TABLE_{article_type_name_parsed}_PROMPTS"
+    table_name = os.environ.get(table_env_variable_name)
+    if table_name is None:
+        print(f"Table name not found for {article_type_name_parsed}")
+        return None
+    airtable_handler = AirtableHandler(table_name)
     records = airtable_handler.get_records()
-    if records:
-        prompts = [{
+    return [parse_prompt(record, article) for record in records] if records else None
+
+
+def parse_prompt(record: dict, article: Article):
+    prompt_text = record.get("fields").get(f"Prompt {article.language}", "")
+    placeholders = re.findall(r'\[(.*?)]', prompt_text)
+    for placeholder in placeholders:
+        #value_to_replace = record.get("fields").get(placeholder, f"No value for {placeholder}")
+        prompt_text = prompt_text.replace(f"[{placeholder}]", article.job_name)
+
+    return {
             "response": "",
             "section": record.get("fields").get("Section Name"),
             "plain_text": "",
-            "prompt": record.get("fields").get(f"Prompt {article.language}", "").replace("[job_name]",
-                                                                                         article.job_name),
+            "prompt": prompt_text,
             "position": record.get("fields").get("Position"),
             "type": record.get("fields").get("Type", "").lower()
             if record.get("fields").get("Type", "").lower() != "body" else ""
-        } for record in records]
-        return prompts
-    return None
+        }
 
 
 def update_metadata(record_id, metadata: dict):
