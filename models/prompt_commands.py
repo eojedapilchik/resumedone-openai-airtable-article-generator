@@ -3,6 +3,7 @@ import os
 from abc import ABC, abstractmethod
 from typing import Dict, Optional
 from helpers.airtable_handler import AirtableHandler
+from helpers.translation_utils import translate_text
 from models.article import Article
 from helpers.openai_handler import OpenAIHandler, OpenAIException
 from helpers.html_utils import (remove_double_quotes, add_html_tags, remove_unwrapped_headers)
@@ -89,6 +90,22 @@ class ImagePromptCommand(PromptCommand):
 
 
 class ExamplePromptCommand(PromptCommand):
+    def execute(self, prompt: Dict, retries: int, article: Article,
+                openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
+        super().execute(prompt, retries, article, openai_handler, **kwargs)
+        response = prompt.get("response")
+        response = add_html_tags(response)
+        correct_translation = translate_text('correct',article.language)
+        prompt["response"] = (
+            f'\n<div class="green-highlight">'
+            f'  <div class="green-highlight-cont">'
+            f'      <img src=\'https://assets.website-files.com/639975e5f44de65498a14a0e'
+            f'/63a0b5fcd66a3b979be8565b_icon-check.svg\'>{correct_translation.upper()}</div>'
+            f'  <div>{response}</div>'
+            f'</div><br>\n')
+
+
+class SampleResumeExampleCommand(PromptCommand):
     def execute(self, prompt: Dict, retries: int, article: Article,
                 openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
         super().execute(prompt, retries, article, openai_handler, **kwargs)
