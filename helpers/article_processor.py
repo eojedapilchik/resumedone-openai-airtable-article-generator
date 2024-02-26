@@ -62,6 +62,10 @@ class ArticleProcessor:
                 metadata[prompt["metadata"]["type"]] = prompt["metadata"]["value"]
             if prompt.get("sample_cover_letter"):
                 samples["sample_cover_letter"] = prompt.get("sample_cover_letter")
+            if prompt.get("faq_title"):
+                responses.append(prompt.get("faq_title"))
+            if prompt.get("faq_content"):
+                responses.append(prompt.get("faq_content"))
         plain_text_responses = [response["plain_text"] for response in prompts]
         current_utc_time = datetime.datetime.utcnow()
         iso8601_date = current_utc_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
