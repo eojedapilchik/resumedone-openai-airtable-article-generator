@@ -17,6 +17,5 @@ def load_translations(language: str):
 
 
 def translate_text(text: str, language: str):
-    translations = load_translations(language)
-    translated_text = translations(language) if language != 'EN' else {}
-    return translated_text[text] or text
+    translations = load_translations(language) if language != 'EN' else {}
+    return translations[text] or text
