@@ -1,6 +1,6 @@
 from models.prompt_commands import (PromptCommand, MetaDataPromptCommand, ImagePromptCommand, ExamplePromptCommand,
                                     DefaultPromptCommand, HTMLPromptCommand, InternalReferenceSectionCommand,
-                                    SampleCoverLetterCommand)
+                                    SampleCoverLetterCommand, SampleResumeExampleCommand)
 
 
 class PromptCommandFactory:
@@ -17,6 +17,10 @@ class PromptCommandFactory:
         elif prompt_type in ["h1", "h2", "h3", "div", "p"]:
             return HTMLPromptCommand()
         elif prompt_type in ["sample cover letter"]:
+            return SampleCoverLetterCommand()
+        elif prompt_type in ["sample resume example"]:
+            return SampleResumeExampleCommand()
+        elif prompt_type in ["faq title"]:
             return SampleCoverLetterCommand()
         else:
             return DefaultPromptCommand()
