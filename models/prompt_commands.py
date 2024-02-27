@@ -69,6 +69,30 @@ class SampleCoverLetterCommand(PromptCommand):
         return None
 
 
+class FAQTitleCommand(PromptCommand):
+    def execute(self, prompt: Dict, retries: int, article: Article,
+                openai_handler: Optional[OpenAIHandler] = None,
+                airtable_handler: Optional[AirtableHandler] = None,
+                **kwargs) -> None:
+        super().execute(prompt, retries, article, openai_handler, **kwargs)
+        response = prompt.get("response")
+        prompt["response"] = ""
+        prompt["faq_title"] = f'<h2 class="questions-h2">{remove_unwrapped_headers(response)}</h2>'
+        return None
+
+
+class FAQContentCommand(PromptCommand):
+    def execute(self, prompt: Dict, retries: int, article: Article,
+                openai_handler: Optional[OpenAIHandler] = None,
+                airtable_handler: Optional[AirtableHandler] = None,
+                **kwargs) -> None:
+        super().execute(prompt, retries, article, openai_handler, **kwargs)
+        response = prompt.get("response")
+        prompt["response"] = ""
+        prompt["faq_content"] = add_html_tags(response, faq_content=True)
+        return None
+
+
 class ImagePromptCommand(PromptCommand):
     def execute(self, prompt: Dict, retries: int, article: Article,
                 openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
@@ -94,8 +118,8 @@ class ExamplePromptCommand(PromptCommand):
                 openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
         super().execute(prompt, retries, article, openai_handler, **kwargs)
         response = prompt.get("response")
-        response = add_html_tags(response)
-        correct_translation = translate_text('correct',article.language)
+        response = add_html_tags(response, from_example_command=True)
+        correct_translation = translate_text('correct', article.language)
         prompt["response"] = (
             f'\n<div class="green-highlight">'
             f'  <div class="green-highlight-cont">'

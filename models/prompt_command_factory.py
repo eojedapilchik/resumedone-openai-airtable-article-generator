@@ -1,4 +1,4 @@
-from models.prompt_commands import (PromptCommand, MetaDataPromptCommand, ImagePromptCommand, ExamplePromptCommand,
+from models.prompt_commands import (FAQContentCommand, FAQTitleCommand, PromptCommand, MetaDataPromptCommand, ImagePromptCommand, ExamplePromptCommand,
                                     DefaultPromptCommand, HTMLPromptCommand, InternalReferenceSectionCommand,
                                     SampleCoverLetterCommand, SampleResumeExampleCommand)
 
@@ -21,6 +21,8 @@ class PromptCommandFactory:
         elif prompt_type in ["sample resume example"]:
             return SampleResumeExampleCommand()
         elif prompt_type in ["faq title"]:
-            return SampleCoverLetterCommand()
+            return FAQTitleCommand()
+        elif prompt_type in ["faq content"]:
+            return FAQContentCommand()
         else:
             return DefaultPromptCommand()
