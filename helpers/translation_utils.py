@@ -18,4 +18,4 @@ def load_translations(language: str):
 
 def translate_text(text: str, language: str):
     translations = load_translations(language) if language != 'EN' else {}
-    return translations[text] or text
+    return translations.get(text) or text
