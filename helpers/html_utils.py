@@ -73,7 +73,7 @@ def add_html_tags(text, from_example_command:bool = False, faq_content: bool = F
         text = convert_numbers_to_ol(text)
         text = add_p_tags(text, from_example_command)
     else:
-        qa = re.split(r'\n+\s*', text.strip())
+        qa = re.split(r'\s*\n\s*\n*\s*', text.strip())
         for i in range(len(qa)):
             qa[i] = add_question_tags(qa[i]) if i % 2 == 0 else add_response_tags(qa[i]) 
         text = '\n'.join(qa)
