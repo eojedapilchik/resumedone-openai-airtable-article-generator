@@ -23,6 +23,6 @@ class PromptCommandFactory:
         elif prompt_type in ["faq title"]:
             return FAQTitleCommand()
         elif prompt_type.lower().strip() in ["faq content", "example"]:
-            return BlogDesignCommandFactory().create_command(blog_name, prompt_type)
+            return BlogDesignCommandFactory.create_command(blog_name, prompt_type)
         else:
             return DefaultPromptCommand()
