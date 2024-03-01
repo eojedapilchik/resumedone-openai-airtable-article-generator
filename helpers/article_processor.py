@@ -17,9 +17,10 @@ class ArticleProcessor:
         self.retries = int(os.getenv("OPENAI_RETRIES", 3))
 
     def process(self, prompts: List[Dict], article: Article) -> List[Dict]:
+        blog = self.get_article_blog(article.record_id)
         for index, prompt in enumerate(prompts, start=1):
             prompt_type = prompt.get("type", "").lower().strip()
-            command = PromptCommandFactory.create_command(prompt_type)
+            command = PromptCommandFactory.create_command(blog, prompt_type)
             try:
                 print(f"Prompt {index}/{len(prompts)} in progress...")
                 command.execute(prompt, self.retries, article=article, openai_handler=self.openai_handler,
@@ -89,3 +90,10 @@ class ArticleProcessor:
         except Exception as e:
             print(f"[!!] Error updating record: {str(e)}")
             print(prompts)
+
+    def get_article_blog(self, record_id:str):
+        found_article = self.airtable_handler.get_records(filter_by_formula=f"FIND(\"{record_id}\", {{Airtable ID}})")
+        if not found_article or found_article[0] is None:
+            print("No article found")
+            return None
+        return found_article[0].get("fields").get('blog') or None

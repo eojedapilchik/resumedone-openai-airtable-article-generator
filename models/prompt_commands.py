@@ -1,3 +1,4 @@
+import re
 import time
 import os
 from abc import ABC, abstractmethod
@@ -6,7 +7,8 @@ from helpers.airtable_handler import AirtableHandler
 from helpers.translation_utils import translate_text
 from models.article import Article
 from helpers.openai_handler import OpenAIHandler, OpenAIException
-from helpers.html_utils import (remove_double_quotes, add_html_tags, remove_unwrapped_headers)
+from helpers.html_utils import (remove_double_astrix, remove_double_quotes, add_html_tags, remove_empty_html_tags,
+                                remove_unwrapped_headers)
 
 
 class PromptCommand(ABC):
@@ -81,7 +83,8 @@ class FAQTitleCommand(PromptCommand):
         return None
 
 
-class FAQContentCommand(PromptCommand):
+class FAQDefaultContentCommand(PromptCommand):
+
     def execute(self, prompt: Dict, retries: int, article: Article,
                 openai_handler: Optional[OpenAIHandler] = None,
                 airtable_handler: Optional[AirtableHandler] = None,
@@ -89,8 +92,45 @@ class FAQContentCommand(PromptCommand):
         super().execute(prompt, retries, article, openai_handler, **kwargs)
         response = prompt.get("response")
         prompt["response"] = ""
-        prompt["faq_content"] = add_html_tags(response, faq_content=True)
+        prompt["faq_content"] = self.add_special_design(response)
         return None
+
+    def add_special_design(self, response: str):
+        qa = re.split(r'\s*\n\s*\n*\s*', response.strip())
+        for i in range(len(qa)):
+            qa[i] = self.add_question_tags(qa[i]) if i % 2 == 0 else self.add_response_tags(qa[i])
+        text = '\n'.join(qa)
+        text = remove_empty_html_tags(text)
+        text = remove_double_astrix(text)
+        return text
+
+    def add_question_tags(self, text: str):
+        return (f'<div>\n'
+                f'     <p>{text}</p>\n')
+
+    def add_response_tags(self, text: str):
+        return (f'      <p>{text}</p>\n'
+                f'</div>')
+
+
+class CommonFAQContentCommand(FAQDefaultContentCommand):
+    def add_question_tags(self, text: str):
+        return (f'<div class="accordian-item">\n'
+                f'  <div class="accordian-trigger">\n'
+                f'      <div class="accordion-question">{text}</div>\n'
+                f'      <div class="accordian-cross">\n'
+                f'          <div class="cross-h"></div>\n'
+                f'          <div class="cross-h v" style="transform: translate3d(0px, 0px, 0px) scale3d(1, 1, '
+                f'1) rotateX('
+                f'0deg) rotateY(0deg) rotateZ(0deg) skew(0deg, 0deg); transform-style: preserve-3d;"></div>\n'
+                f'      </div>\n'
+                f'  </div>\n')
+
+    def add_response_tags(self, text: str):
+        return (f'  <div class="accordian-content">\n'
+                f'      <p>{text}</p>\n'
+                f'  </div>\n'
+                f'</div>')
 
 
 class ImagePromptCommand(PromptCommand):
@@ -113,7 +153,7 @@ class ImagePromptCommand(PromptCommand):
                 f'</figure>')
 
 
-class ExamplePromptCommand(PromptCommand):
+class CommonExamplePromptCommand(PromptCommand):
     def execute(self, prompt: Dict, retries: int, article: Article,
                 openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
         super().execute(prompt, retries, article, openai_handler, **kwargs)
@@ -130,6 +170,15 @@ class ExamplePromptCommand(PromptCommand):
 
 
 class SampleResumeExampleCommand(PromptCommand):
+    def execute(self, prompt: Dict, retries: int, article: Article,
+                openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
+        super().execute(prompt, retries, article, openai_handler, **kwargs)
+        response = prompt.get("response")
+        response = add_html_tags(response)
+        prompt["response"] = f'\n<div class=\'grey-div\'>\n<div>{response}</div>\n</div><br>\n'
+
+
+class ExampleDefaultPromptCommand(PromptCommand):
     def execute(self, prompt: Dict, retries: int, article: Article,
                 openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
         super().execute(prompt, retries, article, openai_handler, **kwargs)
