@@ -7,7 +7,7 @@ from helpers.airtable_handler import AirtableHandler
 from helpers.translation_utils import translate_text
 from models.article import Article
 from helpers.openai_handler import OpenAIHandler, OpenAIException
-from helpers.html_utils import (remove_double_astrix, remove_double_quotes, add_html_tags, remove_empty_html_tags,
+from helpers.html_utils import (add_p_tags, remove_double_astrix, remove_double_quotes, add_html_tags, remove_empty_html_tags,
                                 remove_unwrapped_headers)
 
 
@@ -96,10 +96,22 @@ class FAQDefaultContentCommand(PromptCommand):
         return None
 
     def add_special_design(self, response: str):
+        qa_sections=[]
         qa = re.split(r'\s*\n\s*\n*\s*', response.strip())
-        for i in range(len(qa)):
-            qa[i] = self.add_question_tags(qa[i]) if i % 2 == 0 else self.add_response_tags(qa[i])
-        text = '\n'.join(qa)
+        res_sections=[]
+        for i in range(len(qa)+1):
+            sentense= qa[i] if i < len(qa) else None
+            if sentense:
+                if "?" in sentense:
+                    if len(res_sections)>0:
+                        qa_sections.append(self.add_response_tags(add_p_tags('\n'.join(res_sections)))) 
+                        res_sections=[]
+                    qa_sections.append(self.add_question_tags(sentense))
+                    continue
+                res_sections.append(sentense)
+            elif len(res_sections)>0 and i==len(qa):
+                qa_sections.append(self.add_response_tags(add_p_tags('\n'.join(res_sections)))) 
+        text = '\n'.join(qa_sections)
         text = remove_empty_html_tags(text)
         text = remove_double_astrix(text)
         return text
@@ -109,7 +121,7 @@ class FAQDefaultContentCommand(PromptCommand):
                 f'     <p>{text}</p>\n')
 
     def add_response_tags(self, text: str):
-        return (f'      <p>{text}</p>\n'
+        return (f'      {text}\n'
                 f'</div>')
 
 
@@ -128,7 +140,7 @@ class CommonFAQContentCommand(FAQDefaultContentCommand):
 
     def add_response_tags(self, text: str):
         return (f'  <div class="accordian-content">\n'
-                f'      <p>{text}</p>\n'
+                f'      {text}\n'
                 f'  </div>\n'
                 f'</div>')
 
