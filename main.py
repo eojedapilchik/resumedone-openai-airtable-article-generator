@@ -187,19 +187,37 @@ def update_url(record_id: str, job_name: str, language: str):
         print("No response received from OpenAI")
 
 
+NOT_LATIN_LANGUAGES = ["Kazakh"]
+
 def translate_job(record_id, job_name):
+    convert_job(record_id, job_name,'translate', "fldUIXxtRzNURofJT")
+    lang = get_article_language( record_id)
+    if lang in NOT_LATIN_LANGUAGES:
+        convert_job(record_id, job_name,'transliterate', "fldL6ebIQHkbaPv01")
+    
+    
+def get_article_language(record_id:str):
+    airtable_handler = AirtableHandler(data_table)
+    found_article = airtable_handler.get_records(filter_by_formula=f"FIND(\"{record_id}\", {{Airtable ID}})")
+    if not found_article or found_article[0] is None:
+        print("No article found")
+        return None
+    return found_article[0].get("fields").get('Language') or None
+    
+    
+def convert_job(record_id, job_name, type, fieldId):
     engine = os.environ.get("OPENAI_ENGINE_LATEST", "gpt-4")
     openai_handler = OpenAIHandler(engine)
-    if prompts_cfg.get('translate', {}) is None:
+    if prompts_cfg.get(type, {}) is None:
         print(f"A prompt for translation was not found")
         return None
-    prompt = prompts_cfg['translate'].replace("((title of card))", job_name)
+    prompt = prompts_cfg[type].replace("((title of card))", job_name)
     response = openai_handler.prompt(prompt).lower()
     if len(response) > 0:
         print(f"translation ai response {response}")
         try:
             airtable_handler = AirtableHandler(data_table)
-            airtable_handler.update_record(record_id, {"fldUIXxtRzNURofJT": response})
+            airtable_handler.update_record(record_id, {fieldId: response})
         except Exception as e:
             print(f"An error occurred: {e}")
     else:
