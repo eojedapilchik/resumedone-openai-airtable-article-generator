@@ -125,6 +125,35 @@ class FAQDefaultContentCommand(PromptCommand):
                 f'</div>')
 
 
+class ItwQuestionTemplatePromptCommand(PromptCommand):
+    def execute(self, prompt: Dict, retries: int, article: Article,
+                openai_handler: Optional[OpenAIHandler] = None, **kwargs) -> None:
+        super().execute(prompt, retries, article, openai_handler, **kwargs)
+        response = prompt.get("response")
+        prompt["response"] = ""
+        prompt["itw_question_content"] = self.add_special_design(response)
+        return None
+
+    def add_special_design(self, response: str):
+        qa_sections=[]
+        qa = re.split(r'\s*\n\s*\n*\s*', response.strip())
+        for i in range(len(qa)):
+            qa_sections.append(self.add_itw_question_tags(qa[i]) if i==0 and "?" in qa[i] else self.add_bold_tags(qa[i]))
+        text = '\n'.join(qa_sections)
+        text = remove_empty_html_tags(text)
+        text = remove_double_astrix(text)
+        return text
+
+    def add_itw_question_tags(self, text: str):
+        return f'\n<h3>{text}</h3>\n'
+
+    def add_bold_tags(self, text: str):
+        la = re.split(r':', text.strip())
+        la[0]= f'<b>{la[0]}:</b>'
+        res = ' '.join(la)
+        return f'<p>{res}</p>\n'
+
+
 class CommonFAQContentCommand(FAQDefaultContentCommand):
     def add_question_tags(self, text: str):
         return (f'<div class="accordian-item">\n'

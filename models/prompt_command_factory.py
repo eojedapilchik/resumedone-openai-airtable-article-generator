@@ -1,5 +1,5 @@
 from models.blog_design_command_factory import BlogDesignCommandFactory
-from models.prompt_commands import (FAQTitleCommand, PromptCommand, MetaDataPromptCommand,
+from models.prompt_commands import (FAQTitleCommand, ItwQuestionTemplatePromptCommand, PromptCommand, MetaDataPromptCommand,
                                     ImagePromptCommand,
                                     DefaultPromptCommand, HTMLPromptCommand, InternalReferenceSectionCommand,
                                     SampleCoverLetterCommand, SampleResumeExampleCommand)
@@ -18,6 +18,8 @@ class PromptCommandFactory:
             return HTMLPromptCommand()
         elif prompt_type in ["sample cover letter"]:
             return SampleCoverLetterCommand()
+        elif prompt_type in ["itw question template"]:
+            return ItwQuestionTemplatePromptCommand()
         elif prompt_type in ["sample resume example"]:
             return SampleResumeExampleCommand()
         elif prompt_type in ["faq title"]:

@@ -67,6 +67,8 @@ class ArticleProcessor:
                 responses.append(prompt.get("faq_title"))
             if prompt.get("faq_content"):
                 responses.append(prompt.get("faq_content"))
+            if prompt.get("itw_question_content"):
+                responses.append(prompt.get("itw_question_content"))
         plain_text_responses = [response["plain_text"] for response in prompts]
         current_utc_time = datetime.datetime.utcnow()
         iso8601_date = current_utc_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
