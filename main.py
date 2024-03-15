@@ -202,7 +202,7 @@ def get_article_language(record_id:str):
     if not found_article or found_article[0] is None:
         print("No article found")
         return None
-    return found_article[0].get("fields").get('Language') or None
+    return found_article[0].get("fields").get('Language (from Language2)')[0] or None
     
     
 def convert_job(record_id, job_name, type, fieldId):
