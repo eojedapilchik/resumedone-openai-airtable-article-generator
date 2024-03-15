@@ -9,4 +9,5 @@ prompts_cfg = {
                   "cv-d-acteur-de-serie ",
     },
     "translate": "translate the following text into English: ((title of card))",
+    "transliterate": "transliterate the following text into the Latin alphabet: ((title of card))",
 }
