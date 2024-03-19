@@ -145,7 +145,7 @@ class ItwQuestionTemplatePromptCommand(PromptCommand):
         return text
 
     def add_itw_question_tags(self, text: str):
-        return f'\n<b>{text}</b><br/>\n'
+        return f'\n<p><b>{text}</b></p>\n'
 
     def add_bold_tags(self, text: str):
         la = re.split(r':', text.strip())
