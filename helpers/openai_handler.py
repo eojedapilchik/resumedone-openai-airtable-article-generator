@@ -1,6 +1,7 @@
 import os
 import openai
 
+
 class OpenAIException(Exception):
     """Custom exception for OpenAI errors."""
 
@@ -35,7 +36,8 @@ class OpenAIHandler:
         self.engine = engine
         openai.api_key = os.getenv("OPENAI_API_KEY")
 
-    def prompt(self, message: str, max_tokens: int = 1000, temperature: float = 0.7):
+    def prompt(self, message: str, max_tokens: int = 1000,
+               temperature: float = 0.7):
         try:
             if self.engine == "text-davinci-003":
                 response = openai.Completion.create(engine=self.engine,
@@ -44,8 +46,26 @@ class OpenAIHandler:
                                                     temperature=temperature)
             else:
                 response = openai.ChatCompletion.create(model=self.engine,
-                                                        messages=[{"role": "user", "content": message}],
+                                                        messages=[
+                                                            {"role": "user",
+                                                             "content": message}],
                                                         temperature=temperature)
+            return response.choices[0]["message"]["content"].strip()
+        except Exception as e:
+            print("Open AI Error: " + str(e))
+            raise OpenAIException(str(e)) from e
+
+    def prompt_with_image_input(self, message: list, image_url: str,
+                                max_tokens: int = 1000,
+                                temperature: float = 0.7,
+                               ):
+
+        try:
+            print(f"using engine: {self.engine}")
+            response = openai.ChatCompletion.create(model=self.engine,
+                                                    messages=message,
+                                                    max_tokens=max_tokens,
+                                                    temperature=temperature)
             return response.choices[0]["message"]["content"].strip()
         except Exception as e:
             print("Open AI Error: " + str(e))

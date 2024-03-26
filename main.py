@@ -12,6 +12,7 @@ from helpers.frontapp_handler import FrontAppHandler, FrontAppError
 from helpers.lemlist_handler import LemlistHandler
 from helpers.instantlyai_handler import InstantlyHandler
 from helpers.prompts_config import prompts_cfg
+from helpers.content_processor import process_content
 from categorize_articles import update_category
 from typing import List
 from models.instantly_lead import Lead
@@ -115,6 +116,31 @@ async def get_campaigns():
     campaigns = handler.list_campaigns()
     return {"status": "success",
             "campaigns": campaigns}
+
+
+@app.get("/airtable/translations/{record_id}/")
+async def get_translations(record_id: str):
+    base_id = os.environ.get("BASE_ADMIN_ID")
+    table_id = os.environ.get("TABLE_CONTENT_ADMIN")
+    if record_id is None:
+        return {"status": "missing record_id"}
+    airtable_handler = AirtableHandler(table_id, base_id)
+    content = airtable_handler.get_record(record_id, "Content")
+    if not content:
+        return {"status": "error",
+                "message": "No article found"}
+    image_urls = content.get("fields").get("image")[0].get("thumbnails").get("full").get("url")
+    if not image_urls:
+        return {"status": "error",
+                "message": "No image found"}
+    text_to_translate = content.get("fields").get("en - English")
+    if not text_to_translate:
+        return {"status": "error",
+                "message": "No text found"}
+    record_id = content.get("id")
+    process_content(text_to_translate, image_urls, record_id, airtable_handler)
+    return {"status": "processing, Results will be updated in Airtable soon",
+            "article": content}
 
 
 @app.get("/instantly/campaigns/")

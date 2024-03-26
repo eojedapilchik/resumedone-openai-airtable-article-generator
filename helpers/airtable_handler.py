@@ -37,6 +37,22 @@ class AirtableHandler:
             return temp_table.all(formula=filter_by_formula)
         return self._table.all(formula=filter_by_formula)
 
+    def get_record(self, record_id: str, table_name: str = None):
+        if record_id is None:
+            raise ValueError("Record ID not provided")
+        if table_name is None and self._table is None:
+            raise ValueError("Table name not provided")
+        if table_name:
+            temp_table = Table(self._personal_access_token, self._base_key, table_name)
+            return temp_table.get(record_id)
+        return self._table.get(record_id)
+
+    def get_table_schema(self, table_name: str = None):
+        if table_name:
+            temp_table = Table(self._personal_access_token, self._base_key, table_name)
+            return temp_table.schema()
+        return self._table.schema()
+
     def update_record(self, record_id: str, fields: dict, table_name: str = None):
         update_table = self._table
         if table_name:
