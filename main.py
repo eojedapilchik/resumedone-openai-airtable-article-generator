@@ -141,7 +141,7 @@ async def get_translations(record_id: str, background_tasks: BackgroundTasks):
 
     background_tasks.add_task(process_content, text_to_translate, image_urls, record_id, airtable_handler)
     return {"status": "processing, Results will be updated in Airtable soon",
-            "article": content}
+            "article": record_id}
 
 
 @app.get("/instantly/campaigns/")
