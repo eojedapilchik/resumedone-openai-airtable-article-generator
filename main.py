@@ -119,7 +119,7 @@ async def get_campaigns():
 
 
 @app.get("/airtable/translations/{record_id}/")
-async def get_translations(record_id: str):
+async def get_translations(record_id: str, background_tasks: BackgroundTasks):
     base_id = os.environ.get("BASE_ADMIN_ID")
     table_id = os.environ.get("TABLE_CONTENT_ADMIN")
     if record_id is None:
@@ -138,7 +138,8 @@ async def get_translations(record_id: str):
         return {"status": "error",
                 "message": "No text found"}
     record_id = content.get("id")
-    process_content(text_to_translate, image_urls, record_id, airtable_handler)
+
+    background_tasks.add_task(process_content, text_to_translate, image_urls, record_id, airtable_handler)
     return {"status": "processing, Results will be updated in Airtable soon",
             "article": content}
 
