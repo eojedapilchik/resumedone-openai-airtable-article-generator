@@ -118,7 +118,7 @@ class FAQDefaultContentCommand(PromptCommand):
 
     def add_question_tags(self, text: str):
         return (f'<div>\n'
-                f'     <p>{text}</p>\n')
+                f'     <p>{remove_unwrapped_headers(text)}</p>\n')
 
     def add_response_tags(self, text: str):
         return (f'      {text}\n'
@@ -158,7 +158,7 @@ class CommonFAQContentCommand(FAQDefaultContentCommand):
     def add_question_tags(self, text: str):
         return (f'<div class="accordian-item">\n'
                 f'  <div class="accordian-trigger">\n'
-                f'      <div class="accordion-question">{text}</div>\n'
+                f'      <div class="accordion-question">{remove_unwrapped_headers(text)}</div>\n'
                 f'      <div class="accordian-cross">\n'
                 f'          <div class="cross-h"></div>\n'
                 f'          <div class="cross-h v" style="transform: translate3d(0px, 0px, 0px) scale3d(1, 1, '
