@@ -68,14 +68,15 @@ def update_category(record_id, article_name, base_id=None):
 
     airtable_handler = AirtableHandler(table_id, base_id, at_token)
     openai_handler = OpenAIHandler()
-    response = openai_handler.prompt(f"Categorize a blog post with this title: {article_name} "
-                                     f"according to one of the following 18 categories - do not add any"
-                                     f" other category, just respond with the category name matching this list-: "
-                                     f"Accounting and Finance, Administrative,"
-                                     f"Creative and Cultural, Engineering, Food & Catering, Information Technology,"
-                                     f"Maintenance & Repair, Marketing, Medical, Other, Retail, Sales, Social Work,"
-                                     f"Sport & Fitness, Transport & Logistics, Industry, Public Safety and Defense, "
-                                     f"Education")
+    prompt = (f"Pick a category for a blog post with this title: {article_name} "
+              f"according to one of the following 18 categories in this list-: "
+              f"[ Accounting and Finance, Administrative,"
+              f"Creative and Cultural, Engineering, Food & Catering, Information Technology,"
+              f"Maintenance & Repair, Marketing, Medical, Other, Retail, Sales, Social Work,"
+              f"Sport & Fitness, Transport & Logistics, Industry, Public Safety and Defense, "
+              f"Education ] IMPORTANT: Do not add any other text to the response, just the category name "
+              f"and nothing else. Do not use any category that is not in the list.")
+    response = openai_handler.prompt(message=prompt, temperature=0.5)
     print(response)
     category_from_list = extract_word(response)
     category = category_from_list if category_from_list else response
