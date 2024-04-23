@@ -4,6 +4,7 @@ import random
 import re
 from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, Query
 from dotenv import load_dotenv
+import requests
 from helpers.article_processor import ArticleProcessor
 from models.article import Article
 from helpers.airtable_handler import AirtableHandler
@@ -87,6 +88,16 @@ async def create_article(background_tasks: BackgroundTasks, record_id: str, job_
                           internal_refs=internal_refs, type=article_type)
         background_tasks.add_task(process_article, article)
         return {"status": "processing AI generated sections for article: " + job_name}
+    else:
+        return {"status": "missing data"}
+
+
+@app.get("/get-resume-samples-data/{record_id}")
+async def target_article_generation(background_tasks: BackgroundTasks, record_id: str, task_id: str, job_name: str):
+    if record_id and job_name and task_id:
+        article = Article(record_id=record_id, job_name=job_name)
+        background_tasks.add_task(process_getting_task_response, article, task_id)
+        return {"status": "getting resume sample images for article: " + job_name}
     else:
         return {"status": "missing data"}
 
@@ -216,22 +227,23 @@ def update_url(record_id: str, job_name: str, language: str):
 
 NOT_LATIN_LANGUAGES = ["Kazakh"]
 
+
 def translate_job(record_id, job_name):
-    convert_job(record_id, job_name,'translate', "fldUIXxtRzNURofJT")
-    lang = get_article_language( record_id)
+    convert_job(record_id, job_name, 'translate', "fldUIXxtRzNURofJT")
+    lang = get_article_language(record_id)
     if lang in NOT_LATIN_LANGUAGES:
-        convert_job(record_id, job_name,'transliterate', "fldL6ebIQHkbaPv01")
-    
-    
-def get_article_language(record_id:str):
+        convert_job(record_id, job_name, 'transliterate', "fldL6ebIQHkbaPv01")
+
+
+def get_article_language(record_id: str):
     airtable_handler = AirtableHandler(data_table)
     found_article = airtable_handler.get_records(filter_by_formula=f"FIND(\"{record_id}\", {{Airtable ID}})")
     if not found_article or found_article[0] is None:
         print("No article found")
         return None
     return found_article[0].get("fields").get('Language (from Language2)')[0] or None
-    
-    
+
+
 def convert_job(record_id, job_name, type, fieldId):
     engine = os.environ.get("OPENAI_ENGINE_LATEST", "gpt-4")
     openai_handler = OpenAIHandler(engine)
@@ -404,6 +416,38 @@ def process_article(article: Article):
     print(f"Elapsed time: {elapsed_time} seconds")
 
 
+def process_getting_task_response(article: Article, task_id: str):
+    url = f"https://api.resumedone-staging.com/v2/task-processor/{task_id}"
+    headers = {"Accept": "application/json", "Content-Type": "application/json"}
+    airtable_handler = AirtableHandler(data_table)
+    for i in range(20):
+        try:
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                result = response.json()
+                if isinstance(result, dict):
+                    print(f'resume sample for {article.job_name} is loading')
+                    time.sleep(10)
+                    continue
+                elif isinstance(result, list) and len(result) >= 4:
+                    print(f'resume sample for {article.job_name} processed')
+                    airtable_handler.update_record(article.record_id, {
+                        "fld9lCuvcwKAKEbnz": result,
+                    })
+                    break
+                else:
+                    print(result)
+                    continue
+            response.raise_for_status()
+        except Exception as e:
+            error_message = f"An error occurred when getting resume sample data: {e}"
+            print(error_message)
+            airtable_handler.update_record(article.record_id, {
+                "fldJ05DEHV8vTHlmk": error_message,
+            })
+            continue
+
+
 def get_prompts(article: Article):
     article_type_name_parsed = article.type.upper().strip().replace(' ', '_')
     table_env_variable_name = f"TABLE_{article_type_name_parsed}_PROMPTS"
@@ -420,18 +464,18 @@ def parse_prompt(record: dict, article: Article):
     prompt_text = record.get("fields").get(f"Prompt {article.language}", "")
     placeholders = re.findall(r'\[(.*?)]', prompt_text)
     for placeholder in placeholders:
-        #value_to_replace = record.get("fields").get(placeholder, f"No value for {placeholder}")
+        # value_to_replace = record.get("fields").get(placeholder, f"No value for {placeholder}")
         prompt_text = prompt_text.replace(f"[{placeholder}]", article.job_name)
 
     return {
-            "response": "",
-            "section": record.get("fields").get("Section Name"),
-            "plain_text": "",
-            "prompt": prompt_text,
-            "position": record.get("fields").get("Position"),
-            "type": record.get("fields").get("Type", "").lower()
-            if record.get("fields").get("Type", "").lower() != "body" else ""
-        }
+        "response": "",
+        "section": record.get("fields").get("Section Name"),
+        "plain_text": "",
+        "prompt": prompt_text,
+        "position": record.get("fields").get("Position"),
+        "type": record.get("fields").get("Type", "").lower()
+        if record.get("fields").get("Type", "").lower() != "body" else ""
+    }
 
 
 def update_metadata(record_id, metadata: dict):
