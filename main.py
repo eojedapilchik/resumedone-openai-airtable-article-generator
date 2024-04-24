@@ -93,10 +93,10 @@ async def create_article(background_tasks: BackgroundTasks, record_id: str, job_
 
 
 @app.get("/get-resume-samples-data/{record_id}")
-async def target_article_generation(background_tasks: BackgroundTasks, record_id: str, task_id: str, job_name: str):
+async def target_article_generation(background_tasks: BackgroundTasks, record_id: str, task_id: str, job_name: str, first_retry_after: int):
     if record_id and job_name and task_id:
         article = Article(record_id=record_id, job_name=job_name)
-        background_tasks.add_task(process_getting_task_response, article, task_id)
+        background_tasks.add_task(process_getting_task_response, article, task_id, first_retry_after)
         return {"status": "getting resume sample images for article: " + job_name}
     else:
         return {"status": "missing data"}
@@ -416,34 +416,50 @@ def process_article(article: Article):
     print(f"Elapsed time: {elapsed_time} seconds")
 
 
-def process_getting_task_response(article: Article, task_id: str):
+def process_getting_task_response(article: Article, task_id: str, first_retry_after: int = 0):
     url = f"https://api.resumedone-staging.com/v2/task-processor/{task_id}"
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
     airtable_handler = AirtableHandler(data_table)
-    for i in range(20):
+    airtable_handler.update_record(article.record_id, {
+                        "fldcTiDTr8BBUNqkk": 'Processing',
+                    })
+    time.sleep(first_retry_after)
+    for i in range(1,20):
         try:
             response = requests.get(url, headers=headers)
             if response.status_code == 200:
                 result = response.json()
                 if isinstance(result, dict):
-                    print(f'resume sample for {article.job_name} is loading')
+                    log_message = f'{i}. resume sample for {article.job_name} is loading\n Data: \n{result}'
+                    print(log_message)
+                    airtable_handler.update_record(article.record_id, {
+                        "fldnEZ9uHN8mNJPA8": log_message,
+                    })
                     time.sleep(10)
                     continue
                 elif isinstance(result, list) and len(result) >= 4:
-                    print(f'resume sample for {article.job_name} processed')
+                    log_message = f'{i}. resume sample for {article.job_name} processed'
+                    print(log_message)
                     airtable_handler.update_record(article.record_id, {
                         "fld9lCuvcwKAKEbnz": result,
+                        "fldnEZ9uHN8mNJPA8": log_message,
+                        "fldcTiDTr8BBUNqkk": 'Completed',
                     })
                     break
                 else:
-                    print(result)
-                    continue
+                    log_message = f"{i}. Resume data incomplete \n Data: \n{result}"
+                    airtable_handler.update_record(article.record_id, {
+                        "fldnEZ9uHN8mNJPA8": log_message,
+                        "fldcTiDTr8BBUNqkk": 'Incomplete',
+                    })
+                    break
             response.raise_for_status()
         except Exception as e:
             error_message = f"An error occurred when getting resume sample data: {e}"
             print(error_message)
             airtable_handler.update_record(article.record_id, {
-                "fldJ05DEHV8vTHlmk": error_message,
+                "fldnEZ9uHN8mNJPA8": error_message,
+                "fldcTiDTr8BBUNqkk": 'Error',
             })
             continue
 
