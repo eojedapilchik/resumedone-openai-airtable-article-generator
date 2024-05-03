@@ -424,7 +424,7 @@ def process_getting_task_response(article: Article, task_id: str, first_retry_af
                         "fldcTiDTr8BBUNqkk": 'Processing',
                     })
     time.sleep(first_retry_after)
-    for i in range(1,20):
+    for i in range(1,30):
         try:
             response = requests.get(url, headers=headers)
             if response.status_code == 200:
