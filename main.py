@@ -435,12 +435,12 @@ def process_getting_task_response(article: Article, task_id: str, first_retry_af
                     airtable_handler.update_record(article.record_id, {
                         "fldnEZ9uHN8mNJPA8": log_message,
                     })
-                    time.sleep(10)
                     if result.get('status') == 500:
                         airtable_handler.update_record(article.record_id, {
                             "fldcTiDTr8BBUNqkk": 'Error',
                         })
                         break
+                    time.sleep(10)
                     continue
                 elif isinstance(result, list) and len(result) >= 4:
                     log_message = f'{i}. resume sample for {article.job_name} processed'
