@@ -6,6 +6,7 @@ from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, Query
 from dotenv import load_dotenv
 import requests
 from helpers.article_processor import ArticleProcessor
+from helpers.skill_processor import SkillProcessor
 from models.article import Article
 from helpers.airtable_handler import AirtableHandler
 from helpers.openai_handler import OpenAIHandler, OpenAIException
@@ -38,6 +39,7 @@ app.add_middleware(
 load_dotenv()
 
 data_table = os.environ.get("TABLE_DATA")
+data_job_titles_table = os.environ.get("TABLE_JOB_TITLE_DATA")
 show_debug = os.environ.get("SHOW_DEBUG") == "True"
 log_text = ""
 last_index = None
@@ -48,6 +50,17 @@ async def create_article_sections(background_tasks: BackgroundTasks, article: Ar
     if article.record_id and article.job_name:
         background_tasks.add_task(process_article, article)
         return {"status": "processing AI generated sections for article: " + article.job_name}
+    else:
+        return {"status": "missing data"}
+
+
+@app.get("/generate-skill/{record_id}")
+async def generate_json_skill(background_tasks: BackgroundTasks, record_id: str, job_name: str,
+                         language: str):
+    if record_id and job_name and language:
+        article = Article(record_id=record_id, job_name=job_name, language=language)
+        background_tasks.add_task(process_job, article)
+        return {"status": "processing AI for generating skill for article: " + article.job_name}
     else:
         return {"status": "missing data"}
 
@@ -414,6 +427,32 @@ def process_article(article: Article):
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Elapsed time: {elapsed_time} seconds")
+    
+    
+def process_job(article: Article):
+    start_time = time.time()
+    print(f"Processing Article: {article.job_name} id {article.record_id} type: {article.type}")
+    prompts = get_job_skill_prompts(article)
+    engine = os.environ.get("OPENAI_ENGINE_LATEST", "gpt-4")
+    skill_processor = SkillProcessor(OpenAIHandler(engine), article.record_id, AirtableHandler(data_job_titles_table))
+    if prompts is None:
+        skill_processor.update_airtable_record_log(article.record_id, "No prompts Retrieved")
+        print("No prompts found")
+        return None
+    skill_processor.update_airtable_record_status(article.record_id, "In progress")
+    sorted_prompts = sorted(prompts, key=lambda x: x["position"] or float("inf"))
+
+    prompts = skill_processor.process(sorted_prompts, article)
+    if prompts is None:
+        skill_processor.update_airtable_record_log(article.record_id, "No responses found for prompts")
+        print("No responses found")
+        return None
+    end_time = time.time()
+    elapsed_time_bf_at = end_time - start_time
+    skill_processor.update_airtable_record(article.record_id, prompts, elapsed_time_bf_at)
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Elapsed time: {elapsed_time} seconds")
 
 
 def process_getting_task_response(article: Article, task_id: str, first_retry_after: int = 0):
@@ -475,6 +514,17 @@ def get_prompts(article: Article):
     table_name = os.environ.get(table_env_variable_name)
     if table_name is None:
         print(f"Table name not found for {article_type_name_parsed}")
+        return None
+    airtable_handler = AirtableHandler(table_name)
+    records = airtable_handler.get_records()
+    return [parse_prompt(record, article) for record in records] if records else None
+
+
+def get_job_skill_prompts(article: Article):
+    table_env_variable_name = f"TABLE_JOB_TITLE_SKILLS_PROMPTS"
+    table_name = os.environ.get(table_env_variable_name)
+    if table_name is None:
+        print(f"Table name not found for TABLE_JOB_TITLE_SKILLS_PROMPTS")
         return None
     airtable_handler = AirtableHandler(table_name)
     records = airtable_handler.get_records()
