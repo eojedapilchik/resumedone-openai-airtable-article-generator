@@ -16,7 +16,7 @@ from helpers.instantlyai_handler import InstantlyHandler
 from helpers.prompts_config import prompts_cfg
 from helpers.content_processor import process_content
 from categorize_articles import update_category
-from typing import List
+from typing import Dict, List
 from models.instantly_lead import Lead
 from fastapi.middleware.cors import CORSMiddleware
 from models.lemlist_webhook import WebhookData
@@ -43,6 +43,28 @@ data_job_titles_table = os.environ.get("TABLE_JOB_TITLE_DATA")
 show_debug = os.environ.get("SHOW_DEBUG") == "True"
 log_text = ""
 last_index = None
+skill_database_selection = {
+    "DB1": {
+        "baseID": os.getenv('SKILL_DB'),
+        "promptTableID": os.getenv('TABLE_JOB_TITLE_SKILLS_PROMPTS'),
+        "jobTileTableID": os.getenv('TABLE_JOB_TITLE_DATA'),
+        "logFieldId": 'fldItAzHHZqCXIe2L',
+        "JSONFieldId": 'fld4E0I8A0wpMJnpR',
+        "statusFieldId": 'fldPB27E7ukn8tEyd',
+        "elapsedTimeFieldId": 'fldy8C7I29M1qr15W',
+        "finishedTimeFieldId": 'fldL2EO87nY2uFITE',
+    },
+    "DB2": {
+        "baseID": os.getenv('SKILL_DB_ANNEX'),
+        "promptTableID": os.getenv('TABLE_JOB_TITLE_SKILLS_PROMPTS_ANNEX'),
+        "jobTileTableID": os.getenv('TABLE_JOB_TITLE_DATA_ANNEX'),
+        "logFieldId": 'fldC5HJV2NhmScEJu',
+        "JSONFieldId": 'fldSEO3ffaME80GPs',
+        "statusFieldId": 'fldVB756iqaDLIHJ3',
+        "elapsedTimeFieldId": 'fldyCqWuhezAbH1cq',
+        "finishedTimeFieldId": 'fldDSb63NlIY333cx',
+    }
+}
 
 
 @app.post("/article-texts/")
@@ -56,10 +78,10 @@ async def create_article_sections(background_tasks: BackgroundTasks, article: Ar
 
 @app.get("/generate-skill/{record_id}")
 async def generate_json_skill(background_tasks: BackgroundTasks, record_id: str, job_name: str,
-                         language: str):
-    if record_id and job_name and language:
+                              language: str, base_source: str):
+    if record_id and job_name and language and (base_source in ['DB1', 'DB2']):
         article = Article(record_id=record_id, job_name=job_name, language=language)
-        background_tasks.add_task(process_job, article)
+        background_tasks.add_task(process_job, article, base_source)
         return {"status": "processing AI for generating skill for article: " + article.job_name}
     else:
         return {"status": "missing data"}
@@ -106,7 +128,8 @@ async def create_article(background_tasks: BackgroundTasks, record_id: str, job_
 
 
 @app.get("/get-resume-samples-data/{record_id}")
-async def target_article_generation(background_tasks: BackgroundTasks, record_id: str, task_id: str, job_name: str, first_retry_after: int):
+async def target_article_generation(background_tasks: BackgroundTasks, record_id: str, task_id: str, job_name: str,
+                                    first_retry_after: int):
     if record_id and job_name and task_id:
         article = Article(record_id=record_id, job_name=job_name)
         background_tasks.add_task(process_getting_task_response, article, task_id, first_retry_after)
@@ -427,14 +450,19 @@ def process_article(article: Article):
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Elapsed time: {elapsed_time} seconds")
-    
-    
-def process_job(article: Article):
+
+
+def process_job(article: Article, base_source: str = "DB1"):
     start_time = time.time()
-    print(f"Processing Article: {article.job_name} id {article.record_id} type: {article.type}")
-    prompts = get_job_skill_prompts(article)
+    print(f"Processing Article: {article.job_name} id {article.record_id} type: Skill generation")
+    airtable_skill_token = os.getenv('AIRTABLE_SKILL_GENERATION_TKN')
     engine = os.environ.get("OPENAI_ENGINE_LATEST", "gpt-4")
-    skill_processor = SkillProcessor(OpenAIHandler(engine), article.record_id, AirtableHandler(data_job_titles_table))
+    selected_db = skill_database_selection.get(base_source)
+    prompts = get_job_skill_prompts(article, selected_db, airtable_skill_token)
+    job_title_table = selected_db.get("jobTileTableID")
+    database_id = selected_db.get("baseID")
+    skill_processor = SkillProcessor(OpenAIHandler(engine), article.record_id,
+                                     AirtableHandler(job_title_table, database_id, airtable_skill_token), selected_db)
     if prompts is None:
         skill_processor.update_airtable_record_log(article.record_id, "No prompts Retrieved")
         print("No prompts found")
@@ -460,10 +488,10 @@ def process_getting_task_response(article: Article, task_id: str, first_retry_af
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
     airtable_handler = AirtableHandler(data_table)
     airtable_handler.update_record(article.record_id, {
-                        "fldcTiDTr8BBUNqkk": 'Processing',
-                    })
+        "fldcTiDTr8BBUNqkk": 'Processing',
+    })
     time.sleep(first_retry_after)
-    for i in range(1,30):
+    for i in range(1, 30):
         try:
             response = requests.get(url, headers=headers)
             if response.status_code == 200:
@@ -520,13 +548,13 @@ def get_prompts(article: Article):
     return [parse_prompt(record, article) for record in records] if records else None
 
 
-def get_job_skill_prompts(article: Article):
-    table_env_variable_name = f"TABLE_JOB_TITLE_SKILLS_PROMPTS"
-    table_name = os.environ.get(table_env_variable_name)
+def get_job_skill_prompts(article: Article, database_conf: Dict, token: str):
+    table_name = database_conf.get("promptTableID")
+    database_id = database_conf.get("baseID")
     if table_name is None:
         print(f"Table name not found for TABLE_JOB_TITLE_SKILLS_PROMPTS")
         return None
-    airtable_handler = AirtableHandler(table_name)
+    airtable_handler = AirtableHandler(table_name, database_id, token)
     records = airtable_handler.get_records()
     return [parse_prompt(record, article) for record in records] if records else None
 
