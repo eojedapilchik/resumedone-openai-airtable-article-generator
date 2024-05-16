@@ -79,7 +79,7 @@ async def create_article_sections(background_tasks: BackgroundTasks, article: Ar
 @app.get("/generate-skill/{record_id}")
 async def generate_json_skill(background_tasks: BackgroundTasks, record_id: str, job_name: str,
                               language: str, base_source: str):
-    if record_id and job_name and language and base_source:
+    if record_id and job_name and language and (base_source in ['DB1', 'DB2']):
         article = Article(record_id=record_id, job_name=job_name, language=language)
         background_tasks.add_task(process_job, article, base_source)
         return {"status": "processing AI for generating skill for article: " + article.job_name}
