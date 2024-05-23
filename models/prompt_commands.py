@@ -106,6 +106,8 @@ class FAQDefaultContentCommand(PromptCommand):
                 if len(splited)==2:
                     question, answer = splited 
             if len(qa)>0 and "?" in qa[0] and "?" in qa[1]:
+                if i==len(qa):
+                    break
                 if question and answer:
                     qa_sections.append(self.add_question_tags(question+'? '))  
                     qa_sections.append(self.add_response_tags(add_p_tags(answer)))  
