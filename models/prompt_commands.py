@@ -102,15 +102,24 @@ class FAQDefaultContentCommand(PromptCommand):
         for i in range(len(qa)+1):
             sentense= qa[i] if i < len(qa) else None
             if sentense:
-                if "?" in sentense:
-                    if len(res_sections)>0:
-                        qa_sections.append(self.add_response_tags(add_p_tags('\n'.join(res_sections)))) 
-                        res_sections=[]
-                    qa_sections.append(self.add_question_tags(sentense))
-                    continue
-                res_sections.append(sentense)
-            elif len(res_sections)>0 and i==len(qa):
-                qa_sections.append(self.add_response_tags(add_p_tags('\n'.join(res_sections)))) 
+                splited = re.split(r'\? ', sentense)
+                if len(splited)==2:
+                    question, answer = splited 
+            if len(qa)>0 and "?" in qa[0] and "?" in qa[1]:
+                if question and answer:
+                    qa_sections.append(self.add_question_tags(question+'? '))  
+                    qa_sections.append(self.add_response_tags(add_p_tags(answer)))  
+            else:
+                if sentense:
+                    if "?" in sentense:
+                        if len(res_sections)>0:
+                            qa_sections.append(self.add_response_tags(add_p_tags('\n'.join(res_sections)))) 
+                            res_sections=[]
+                        qa_sections.append(self.add_question_tags(sentense))
+                        continue
+                    res_sections.append(sentense)
+                elif len(res_sections)>0 and i==len(qa):
+                    qa_sections.append(self.add_response_tags(add_p_tags('\n'.join(res_sections)))) 
         text = '\n'.join(qa_sections)
         text = remove_empty_html_tags(text)
         text = remove_double_astrix(text)
