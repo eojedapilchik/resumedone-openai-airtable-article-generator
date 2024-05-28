@@ -1,3 +1,4 @@
+import json
 import os
 import time
 import random
@@ -17,6 +18,7 @@ from helpers.prompts_config import prompts_cfg
 from helpers.content_processor import process_content
 from categorize_articles import update_category
 from typing import Dict, List
+from models.experience import Experience
 from models.instantly_lead import Lead
 from fastapi.middleware.cors import CORSMiddleware
 from models.lemlist_webhook import WebhookData
@@ -72,6 +74,34 @@ async def create_article_sections(background_tasks: BackgroundTasks, article: Ar
     if article.record_id and article.job_name:
         background_tasks.add_task(process_article, article)
         return {"status": "processing AI generated sections for article: " + article.job_name}
+    else:
+        return {"status": "missing data"}
+
+
+@app.get("/generate-bullet-from-experience")
+async def generate (job_role: str, company_name: str, experience_content: str):
+    if job_role and company_name and experience_content:
+        experience= Experience(job_role=job_role,experience_content=experience_content, company_name=company_name)
+        engine = os.environ.get("OPENAI_ENGINE_LATEST", "gpt-4")
+        openai_handler = OpenAIHandler(engine)
+        type="extract_bullet"
+        if prompts_cfg.get(type, {}) is None:
+            print(f"A prompt for extraction was not found")
+            return None
+        prompt = prompts_cfg[type].replace("[[Job Role]]", experience.job_role)
+        prompt = prompt.replace("[[Name of the Company]]", experience.company_name)
+        prompt = prompt.replace("[[Experience content]]", experience.experience_content)
+        response = openai_handler.prompt(prompt)
+        response = response.replace("\n", "")
+        response = response.replace("\\\"", "\"")
+        if len(response) > 0:
+            try:
+                return json.loads(response)
+            except Exception as e:
+                return {"status": "the response is not a valid json"}
+        else:
+            print("No response received from OpenAI")
+            return {"status": "no response from Open AI"}
     else:
         return {"status": "missing data"}
 
