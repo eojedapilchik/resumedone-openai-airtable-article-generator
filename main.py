@@ -79,11 +79,9 @@ async def create_article_sections(background_tasks: BackgroundTasks, article: Ar
 
 
 @app.get("/generate-bullet-from-experience")
-async def generate (job_role: str, company_name: str, experience_content: str):
+async def generate_bullet_experience(job_role: str, company_name: str, experience_content: str):
     if job_role and company_name and experience_content:
         experience= Experience(job_role=job_role,experience_content=experience_content, company_name=company_name)
-        engine = os.environ.get("OPENAI_ENGINE_LATEST", "gpt-4")
-        openai_handler = OpenAIHandler(engine)
         type="extract_bullet"
         if prompts_cfg.get(type, {}) is None:
             print(f"A prompt for extraction was not found")
@@ -91,17 +89,20 @@ async def generate (job_role: str, company_name: str, experience_content: str):
         prompt = prompts_cfg[type].replace("[[Job Role]]", experience.job_role)
         prompt = prompt.replace("[[Name of the Company]]", experience.company_name)
         prompt = prompt.replace("[[Experience content]]", experience.experience_content)
-        response = openai_handler.prompt(prompt)
-        response = response.replace("\n", "")
-        response = response.replace("\\\"", "\"")
-        if len(response) > 0:
-            try:
-                return json.loads(response)
-            except Exception as e:
-                return {"status": "the response is not a valid json"}
-        else:
-            print("No response received from OpenAI")
-            return {"status": "no response from Open AI"}
+        return execute_extraction(prompt)
+    else:
+        return {"status": "missing data"}
+
+
+@app.get("/generate-list-of-transformation-selection")
+async def generate_list_transformation(transformation_selection: str):
+    if transformation_selection:
+        type="transformation_list"
+        if prompts_cfg.get(type, {}) is None:
+            print(f"A prompt for extraction was not found")
+            return None
+        prompt = prompts_cfg[type].replace("[[List of Transformation selection]]", transformation_selection)
+        return execute_extraction(prompt)
     else:
         return {"status": "missing data"}
 
@@ -273,6 +274,22 @@ async def receive_webhook(data: WebhookData = Body(...)):
     print(f"Received webhook: {data}")
 
     return {"message": "Webhook received and processed!"}
+
+
+def execute_extraction(prompt :str):
+    engine = os.environ.get("OPENAI_ENGINE_LATEST", "gpt-4")
+    openai_handler = OpenAIHandler(engine)
+    response = openai_handler.prompt(prompt)
+    response = response.replace("\n", "")
+    response = response.replace("\\\"", "\"")
+    if len(response) > 0:
+        try:
+            return json.loads(response)
+        except Exception as e:
+            return {"status": "the response is not a valid json"}
+    else:
+        print("No response received from OpenAI")
+        return {"status": "no response from Open AI"}
 
 
 def update_url(record_id: str, job_name: str, language: str):
