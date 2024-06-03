@@ -10,6 +10,8 @@ prompts_cfg = {
     },
     "translate": "translate the following text into English: ((title of card))",
     "transliterate": "transliterate the following text into the Latin alphabet: ((title of card))",
+    "generate_skill": f"Generate a JSON object containing 10 hard skills, 10 technical skills, and 10 soft skills for the job title provided. Avoid including introductory text, conclusions, markdown formatting, or experience levels, and don't combine tools. "
+                        f"Job title: [[job_name]]",
     "extract_bullet":   f"We are analyzing a resume from a candidate."
                         f"For the following work experience, he wrote the following information :"
                         f"Job Role : [[Job Role]]"

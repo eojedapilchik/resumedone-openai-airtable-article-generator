@@ -37,6 +37,12 @@ class AirtableHandler:
             return temp_table.all(formula=filter_by_formula)
         return self._table.all(formula=filter_by_formula)
 
+    def get_max_records(self, table_name: str = None, filter_by_formula: str = None, fields: list = None, max_records: int = None):
+        if table_name:
+            temp_table = Table(self._personal_access_token, self._base_key, table_name)
+            return temp_table.all(formula=filter_by_formula, fields=fields,  max_records=max_records)
+        return self._table.all(formula=filter_by_formula, fields=fields,  max_records=max_records)
+
     def get_record(self, record_id: str, table_name: str = None):
         if record_id is None:
             raise ValueError("Record ID not provided")

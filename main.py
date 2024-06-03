@@ -23,9 +23,14 @@ from models.instantly_lead import Lead
 from fastapi.middleware.cors import CORSMiddleware
 from models.lemlist_webhook import WebhookData
 from models.instantly_webhook import InstantlyWebhookData
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 app = FastAPI()
-
+# Determine the number of workers
+cpu_count = os.cpu_count()
+max_workers = cpu_count * 4
+executor = ThreadPoolExecutor(max_workers=max_workers)
 allowed_origins = [
     "https://block--st-ma-tla-qc-s-h-m-c-p--re52m6d.alt.airtableblocks.com"
 ]
@@ -40,6 +45,7 @@ app.add_middleware(
 
 load_dotenv()
 
+SKILL_NUMBER = 1000
 data_table = os.environ.get("TABLE_DATA")
 data_job_titles_table = os.environ.get("TABLE_JOB_TITLE_DATA")
 show_debug = os.environ.get("SHOW_DEBUG") == "True"
@@ -116,6 +122,34 @@ async def generate_json_skill(background_tasks: BackgroundTasks, record_id: str,
         return {"status": "processing AI for generating skill for article: " + article.job_name}
     else:
         return {"status": "missing data"}
+
+
+@app.get("/process-skill-generation")
+async def generate_json_skill(background_tasks: BackgroundTasks, base_source: str):
+    if base_source in ['DB1', 'DB2']:
+       background_tasks.add_task(lauching_skill_generation_in_bulk, base_source)
+       return {"status": "generating skill by AI for article processing "}
+    else:
+        return {"status": "missing data"}
+
+
+async def lauching_skill_generation_in_bulk(base_source):
+    job_titles = get_new_job_title(base_source)
+    tasks = []
+    for job_title in job_titles:
+        fields = job_title.get('fields')
+        if fields:
+             record_id = fields.get('Airtable ID')
+             job_name = fields.get('Job name')
+             article = Article(record_id=record_id, job_name=job_name, language="EN")
+             task = run_in_threadpool(process_job, article, base_source)
+             tasks.append(task)
+    await asyncio.gather(*tasks)
+
+
+async def run_in_threadpool(fn, *args, **kwargs):
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, fn, *args, **kwargs)
 
 
 @app.post("/article-category/")
@@ -505,7 +539,7 @@ def process_job(article: Article, base_source: str = "DB1"):
     airtable_skill_token = os.getenv('AIRTABLE_SKILL_GENERATION_TKN')
     engine = os.environ.get("OPENAI_ENGINE_LATEST", "gpt-4")
     selected_db = skill_database_selection.get(base_source)
-    prompts = get_job_skill_prompts(article, selected_db, airtable_skill_token)
+    prompts = get_job_skill_prompts(article.job_name)
     job_title_table = selected_db.get("jobTileTableID")
     database_id = selected_db.get("baseID")
     skill_processor = SkillProcessor(OpenAIHandler(engine), article.record_id,
@@ -530,6 +564,19 @@ def process_job(article: Article, base_source: str = "DB1"):
     print(f"Elapsed time: {elapsed_time} seconds")
 
 
+def get_new_job_title(base_source: str='DB1'):
+    selected_db = skill_database_selection.get(base_source)
+    job_title_table = selected_db.get("jobTileTableID")
+    database_id = selected_db.get("baseID")
+    airtable_skill_token = os.getenv('AIRTABLE_SKILL_GENERATION_TKN')
+    airtable_handler=AirtableHandler(job_title_table, database_id, airtable_skill_token)
+    found_job_title = airtable_handler.get_max_records(filter_by_formula=f"AND(FIND('New', {{Status}}), {{JSON}} = '')", max_records=SKILL_NUMBER)
+    if not found_job_title or found_job_title[0] is None:
+        print("No article found")
+        return None
+    return found_job_title
+    
+    
 def process_getting_task_response(article: Article, task_id: str, first_retry_after: int = 0):
     url = f"https://api.resumedone-staging.com/v2/task-processor/{task_id}"
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
@@ -595,15 +642,21 @@ def get_prompts(article: Article):
     return [parse_prompt(record, article) for record in records] if records else None
 
 
-def get_job_skill_prompts(article: Article, database_conf: Dict, token: str):
-    table_name = database_conf.get("promptTableID")
-    database_id = database_conf.get("baseID")
-    if table_name is None:
-        print(f"Table name not found for TABLE_JOB_TITLE_SKILLS_PROMPTS")
+def get_job_skill_prompts(job_name: str):
+    type="generate_skill"
+    if prompts_cfg.get(type, {}) is None:
+        print(f"A prompt for extraction was not found")
         return None
-    airtable_handler = AirtableHandler(table_name, database_id, token)
-    records = airtable_handler.get_records()
-    return [parse_prompt(record, article) for record in records] if records else None
+    prompt = prompts_cfg[type].replace("[[job_name]]", job_name)
+      
+    return [{
+        "response": "",
+        "section": 'Skill',
+        "plain_text": "",
+        "prompt": prompt,
+        "position": 1,
+        "type": "Skill generation"
+    }] 
 
 
 def parse_prompt(record: dict, article: Article):
