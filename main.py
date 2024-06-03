@@ -29,7 +29,7 @@ from concurrent.futures import ThreadPoolExecutor
 app = FastAPI()
 # Determine the number of workers
 cpu_count = os.cpu_count()
-max_workers = cpu_count * 4
+max_workers = cpu_count * 2
 executor = ThreadPoolExecutor(max_workers=max_workers)
 allowed_origins = [
     "https://block--st-ma-tla-qc-s-h-m-c-p--re52m6d.alt.airtableblocks.com"
