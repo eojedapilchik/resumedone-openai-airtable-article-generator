@@ -113,6 +113,26 @@ async def generate_list_transformation(transformation_selection: str):
         return {"status": "missing data"}
 
 
+@app.get("/generate-outcome-question")
+async def generate_outcome_question(job_role: str, bullet_point_name: str, language: str):
+    if job_role and bullet_point_name:
+        if language == '' or  language is None:
+            language= 'french'
+        type="outcome_question"
+        if prompts_cfg.get(type, {}) is None:
+            print(f"A prompt for extraction was not found")
+            return None
+        prompt = prompts_cfg[type].replace("[[job_role]]", job_role)
+        prompt = prompt.replace("[[bullet_point_name]]", bullet_point_name)
+        prompt = prompt.replace("[[language]]", language)
+        engine = os.environ.get("OPENAI_ENGINE_LATEST", "gpt-4")
+        openai_handler = OpenAIHandler(engine)
+        response = openai_handler.prompt(prompt)
+        return response
+    else:
+        return {"status": "missing data"}
+
+
 @app.get("/generate-skill/{record_id}")
 async def generate_json_skill(background_tasks: BackgroundTasks, record_id: str, job_name: str,
                               language: str, base_source: str):
