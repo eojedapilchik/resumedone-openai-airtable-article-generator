@@ -101,11 +101,13 @@ class FAQDefaultContentCommand(PromptCommand):
         res_sections=[]
         for i in range(len(qa)+1):
             sentense= qa[i] if i < len(qa) else None
+            is_qa_inline = False
             if sentense:
                 splited = re.split(r'\? ', sentense)
                 if len(splited)==2:
                     question, answer = splited 
-            if len(qa)>0 and "?" in qa[0] and "?" in qa[1]:
+                    is_qa_inline = True
+            if len(qa)>0 and "?" in qa[0] and "?" in qa[1] and is_qa_inline:
                 if i==len(qa):
                     break
                 if question and answer:
