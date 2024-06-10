@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import time
 
 from helpers.phone_validator_handler import PhoneValidatorHandler
 
@@ -16,6 +17,7 @@ def revalidate_phone_number(validator: PhoneValidatorHandler,phone: str, country
             phone=phone[1:]
         phone = country_code + phone 
         phone = re.sub(r'\D', '', phone)
+        time.sleep(1)
         return validator.get_all_metadata(phone)
     else:
         print('Country name is invalid or not found')
