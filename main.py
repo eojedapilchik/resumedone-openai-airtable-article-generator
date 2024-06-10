@@ -7,6 +7,7 @@ from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, Query
 from dotenv import load_dotenv
 import requests
 from helpers.article_processor import ArticleProcessor
+from helpers.phone_validator_handler import PhoneValidatorHandler
 from helpers.skill_processor import SkillProcessor
 from models.article import Article
 from helpers.airtable_handler import AirtableHandler
@@ -25,6 +26,8 @@ from models.lemlist_webhook import WebhookData
 from models.instantly_webhook import InstantlyWebhookData
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+
+from validate_phone_number import revalidate_phone_number
 
 app = FastAPI()
 # Determine the number of workers
@@ -274,6 +277,22 @@ async def get_translations(record_id: str, background_tasks: BackgroundTasks):
     background_tasks.add_task(process_content, text_to_translate, image_urls, record_id, airtable_handler)
     return {"status": "processing, Results will be updated in Airtable soon",
             "article": record_id}
+
+
+@app.get("/validate-phone-number")
+async def validate_phone_number(phone: str, country: str):
+    if phone and country:
+        validator = PhoneValidatorHandler(os.environ.get('PHONE_VALIDATOR_API_KEY'))
+        phone = re.sub(r'\D', '', phone)
+        metadata = validator.get_all_metadata(phone)
+        if metadata.get('isValid') == False: 
+            validation = revalidate_phone_number(validator, phone, country)
+            if validation.get('status') == 'error':
+                return metadata
+            return validation
+        return metadata
+    else:
+        return {"status": "missing data"}
 
 
 @app.get("/instantly/campaigns/")
