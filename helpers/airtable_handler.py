@@ -69,6 +69,16 @@ class AirtableHandler:
             print(e)
             raise e
 
+    def create_record(self, fields: dict, table_name: str = None):
+        update_table = self._table
+        if table_name:
+            update_table = Table(self._personal_access_token, self._base_key, table_name)
+        try:
+            update_table.create(fields, typecast=True)
+        except Exception as e:
+            print(e)
+            raise e
+
     def update_records_batch(self, records: list, table_name: str = None):
         update_table = self._table
         if table_name:
