@@ -15,10 +15,10 @@ log_fld_id = os.environ.get("LOG_IMPORTATION_FLD_ID")
 def process_webflow_item_importation(blog: Blog, category: str):
     webflow_handler = WebflowHandler()
     file_container = get_file_handler(blog, category)
-    category_collection = switch_collection(blog, category).collection_id
+    category_collection = switch_collection(blog, category)
     if not category_collection:
         print("Collection Id does not exist")
-        update_importation_log(blog=blog, message=f"Collection Id does not exist")
+        update_importation_log(blog=blog, message=f"{category.upper()} collection Id does not exist in params")
         return
     if not file_container.is_file_exist():
         file_container.write_file([])
@@ -26,7 +26,7 @@ def process_webflow_item_importation(blog: Blog, category: str):
         offset = 100 * i
         print(f"Offset: {offset}")
         update_importation_log(blog=blog, message=f"Offset: {offset}")
-        response = webflow_handler.list_collection_items(collection_id=category_collection, offset=offset, limit=100)
+        response = webflow_handler.list_collection_items(collection_id=category_collection.collection_id, offset=offset, limit=100)
         saved_response = file_container.read_file()
         if response:
             items = response.get("items")
@@ -62,7 +62,7 @@ def update_list_article_in_airtable(blog: Blog, category: str):
         collection_active = switch_collection(blog=blog, category=category)
         if not collection_active:
             print("Collection Id does not exist")
-            update_importation_log(blog=blog, message=f"Collection Id does not exist")
+            update_importation_log(blog=blog, message=f"{category.upper()} collection Id does not exist in params")
             return
         web_collection_buckup = file_container.read_file()
         airtable_handler = AirtableHandler(data_table)
@@ -72,7 +72,9 @@ def update_list_article_in_airtable(blog: Blog, category: str):
                 slug = webflow_item.get('slug')
                 if webflow_item.get('imported_in_airtable') is True:
                     continue
-                update_importation_log(blog=blog, message=f"Article imported: {nbr}")
+                msg = f"{category.upper()} Article imported: {nbr}"
+                update_importation_log(blog=blog, message=msg)
+                print(msg)
                 found_articles = airtable_handler.get_records(
                     filter_by_formula=f"FIND(\"{webflow_id}\", {{Webflow ID}})")
                 if len(found_articles) == 0:
@@ -101,6 +103,7 @@ def update_list_article_in_airtable(blog: Blog, category: str):
         print('Article totally updated')
     else:
         print('file does not exist')
+        update_importation_log(blog=blog, message=f"backup file does not exist")
 
 
 def remove_unused_keys(item: dict):
