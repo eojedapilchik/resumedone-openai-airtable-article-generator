@@ -300,18 +300,18 @@ async def validate_phone_number(phone: str, country: str):
 
 @app.post("/create-webflow-collection-buckup/{category}")
 async def create_wbl_backup(background_tasks: BackgroundTasks,category: str, blog: Blog):
-    if blog.site_id and blog.blog_name and category in ['cv', 'cl', 'job-search']:
+    if blog.site_id and blog.blog_rec_id and blog.blog_name and category in ['cv', 'cl', 'job-search']:
         background_tasks.add_task(process_webflow_item_importation, blog, category)
-        return {"status": "cache webflow item from " + blog.site_id}
+        return {"status": "creating backup for "+ category.upper() +" articles from " + blog.blog_name }
     else:
         return {"status": "missing data"}
 
 
 @app.post("/import-new-human-article/{category}")
 async def import_webflow_human_articles(background_tasks: BackgroundTasks,category: str, blog: Blog):
-    if blog.site_id and blog.blog_name and category in ['cv', 'cl', 'job-search']:
+    if blog.site_id and blog.blog_rec_id and blog.blog_name and category in ['cv', 'cl', 'job-search']:
         background_tasks.add_task(update_list_article_in_airtable, blog, category)
-        return {"status": "importing articles from " + blog.site_id}
+        return {"status": "importing "+ category.upper() +" articles from " + blog.blog_name }
     else:
         return {"status": "missing data"}
 
