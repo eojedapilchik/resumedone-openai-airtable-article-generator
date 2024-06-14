@@ -9,6 +9,7 @@ class BlogCollection(BaseModel):
 
 class Blog(BaseModel):
     site_id: str
+    blog_rec_id: str
     blog_name: str
     blog_to_webflow_id: str
     language_id: str
