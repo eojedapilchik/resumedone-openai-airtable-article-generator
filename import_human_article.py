@@ -135,8 +135,8 @@ def get_type_category(slug: str, blog: Blog, category: str):
         "Job Search": blog.job_search_kws,
         "Resume Example": blog.resume_example_kws
     }
-    for category, kywds in key_words.items():
-        tc = next((category for key in kywds if key in slug), None)
+    for t_category, kywds in key_words.items():
+        tc = next((t_category for key in kywds if key in slug), None)
         if tc:
             return tc
 
