@@ -9,6 +9,8 @@ import requests
 from helpers.article_processor import ArticleProcessor
 from helpers.phone_validator_handler import PhoneValidatorHandler
 from helpers.skill_processor import SkillProcessor
+from helpers.webflow_handler import WebflowHandler
+from import_human_article import process_webflow_item_importation, update_list_article_in_airtable
 from models.article import Article
 from helpers.airtable_handler import AirtableHandler
 from helpers.openai_handler import OpenAIHandler, OpenAIException
@@ -19,6 +21,7 @@ from helpers.prompts_config import prompts_cfg
 from helpers.content_processor import process_content
 from categorize_articles import update_category
 from typing import Dict, List
+from models.blog import Blog
 from models.experience import Experience
 from models.instantly_lead import Lead
 from fastapi.middleware.cors import CORSMiddleware
@@ -291,6 +294,24 @@ async def validate_phone_number(phone: str, country: str):
                 return metadata
             return validation
         return metadata
+    else:
+        return {"status": "missing data"}
+
+
+@app.post("/create-webflow-collection-buckup/{category}")
+async def create_wbl_backup(background_tasks: BackgroundTasks,category: str, blog: Blog):
+    if blog.site_id and blog.blog_rec_id and blog.blog_name and category in ['cv', 'cl', 'job-search']:
+        background_tasks.add_task(process_webflow_item_importation, blog, category)
+        return {"status": "creating backup for "+ category.upper() +" articles from " + blog.blog_name }
+    else:
+        return {"status": "missing data"}
+
+
+@app.post("/import-new-human-article/{category}")
+async def import_webflow_human_articles(background_tasks: BackgroundTasks,category: str, blog: Blog):
+    if blog.site_id and blog.blog_rec_id and blog.blog_name and category in ['cv', 'cl', 'job-search']:
+        background_tasks.add_task(update_list_article_in_airtable, blog, category)
+        return {"status": "importing "+ category.upper() +" articles from " + blog.blog_name }
     else:
         return {"status": "missing data"}
 

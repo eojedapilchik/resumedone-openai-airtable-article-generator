@@ -6,3 +6,4 @@ data/
 credentials_*.json
 token_*.json
 .vscode/
+backup_*.json
