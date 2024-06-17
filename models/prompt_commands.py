@@ -99,6 +99,7 @@ class FAQDefaultContentCommand(PromptCommand):
         qa_sections=[]
         qa = re.split(r'\s*\n\s*\n*\s*', response.strip())
         res_sections=[]
+        question_before_exist=False
         for i in range(len(qa)+1):
             sentense= qa[i] if i < len(qa) else None
             is_qa_inline = False
@@ -116,10 +117,12 @@ class FAQDefaultContentCommand(PromptCommand):
             else:
                 if sentense:
                     if "?" in sentense:
-                        if len(res_sections)>0:
+                        if len(res_sections)>0 and question_before_exist is True:
                             qa_sections.append(self.add_response_tags(add_p_tags('\n'.join(res_sections)))) 
-                            res_sections=[]
+                            question_before_exist=False
+                        res_sections=[]
                         qa_sections.append(self.add_question_tags(sentense))
+                        question_before_exist=True
                         continue
                     res_sections.append(sentense)
                 elif len(res_sections)>0 and i==len(qa):
