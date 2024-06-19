@@ -22,6 +22,7 @@ class ArticlePreviewProcessor:
             preview_data = article_detail.get('resume sample slider data')
             webflow_itm_id = article_detail.get('Webflow ID')
             blog = article_detail.get('blog') #TODO:Update the update for english blog
+            del article_detail
             if webflow_itm_id is not None and preview_data is not None and wbf_params is not None:
                 webflow_params = json.loads(sanitize_for_json(wbf_params[0] if len(wbf_params)>0 else ""))
                 prevw_data = json.loads(sanitize_for_json(preview_data))
