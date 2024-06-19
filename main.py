@@ -9,7 +9,6 @@ import requests
 from helpers.article_processor import ArticleProcessor
 from helpers.phone_validator_handler import PhoneValidatorHandler
 from helpers.skill_processor import SkillProcessor
-from helpers.webflow_handler import WebflowHandler
 from import_human_article import process_webflow_item_importation, update_list_article_in_airtable
 from models.article import Article
 from helpers.airtable_handler import AirtableHandler
@@ -30,6 +29,7 @@ from models.instantly_webhook import InstantlyWebhookData
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
+from update_article_preview import ArticlePreviewProcessor
 from validate_phone_number import revalidate_phone_number
 
 app = FastAPI()
@@ -146,6 +146,16 @@ async def generate_json_skill(background_tasks: BackgroundTasks, record_id: str,
         article = Article(record_id=record_id, job_name=job_name, language=language)
         background_tasks.add_task(process_job, article, base_source)
         return {"status": "processing AI for generating skill for article: " + article.job_name}
+    else:
+        return {"status": "missing data"}
+
+
+@app.get("/update-preview/{record_id}")
+async def update_preview(background_tasks: BackgroundTasks, record_id: str):
+    if record_id:
+        preview_processor = ArticlePreviewProcessor()
+        background_tasks.add_task(preview_processor.process_preview_update, record_id)
+        return {"status": "processing AI for generating skill for article: " + record_id}
     else:
         return {"status": "missing data"}
 
