@@ -20,6 +20,7 @@ class Blog(BaseModel):
     job_search_kws: List[str]
     cl_language_kws: List[str]
     job_itw_kws: List[str]
+    cover_letter_kws: List[str]
     cv_collection: Union[BlogCollection, None] = None
     cover_letter_collection: Union[BlogCollection, None] = None
     job_search_collection: Union[BlogCollection, None] = None
