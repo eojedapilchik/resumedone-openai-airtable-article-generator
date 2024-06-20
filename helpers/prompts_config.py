@@ -8,7 +8,7 @@ prompts_cfg = {
                   "cv-d-architecte "
                   "cv-d-acteur-de-serie ",
     },
-    "translate": "translate the following text into English: ((title of card))",
+    "translate": "translate the following text into English: ((title of card)). Don't add introductory sentense or any explanation, just give the translation.",
     "transliterate": "transliterate the following text into the Latin alphabet: ((title of card))",
     "generate_skill": f"Generate a JSON object containing 10 hard skills, 10 technical skills, and 10 soft skills for the job title provided. Avoid including introductory text, conclusions, markdown formatting, or experience levels, and don't combine tools. "
                         f"Job title: [[job_name]]",
