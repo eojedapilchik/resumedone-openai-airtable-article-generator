@@ -669,11 +669,12 @@ def process_getting_task_response(article: Article, task_id: str, first_retry_af
                     if result.get('status') == 500:
                         airtable_handler.update_record(article.record_id, {
                             "fldcTiDTr8BBUNqkk": 'Error',
+                            "fldPYVmRtilBrDYbC": False
                         })
                         break
                     time.sleep(10)
                     continue
-                elif isinstance(result, list) and len(result) >= 4:
+                elif isinstance(result, list) and len(result) == 5:
                     log_message = f'{i}. resume sample for {article.job_name} processed'
                     print(log_message)
                     airtable_handler.update_record(article.record_id, {
@@ -687,6 +688,7 @@ def process_getting_task_response(article: Article, task_id: str, first_retry_af
                     airtable_handler.update_record(article.record_id, {
                         "fldnEZ9uHN8mNJPA8": log_message,
                         "fldcTiDTr8BBUNqkk": 'Incomplete',
+                        "fldPYVmRtilBrDYbC": False
                     })
                     break
             response.raise_for_status()
@@ -696,6 +698,7 @@ def process_getting_task_response(article: Article, task_id: str, first_retry_af
             airtable_handler.update_record(article.record_id, {
                 "fldnEZ9uHN8mNJPA8": error_message,
                 "fldcTiDTr8BBUNqkk": 'Error',
+                "fldPYVmRtilBrDYbC": False
             })
             continue
 
