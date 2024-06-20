@@ -134,7 +134,7 @@ def get_type_category(slug: str, blog: Blog, category: str):
         "Job Interviews": blog.job_itw_kws,
         "Job Search": blog.job_search_kws,
         "Resume Example": blog.resume_example_kws,
-        "Cover Letter": blog.cover_letter_kws,
+        "Cover Letter": blog.cover_letter_kws
     }
     for t_category, kywds in key_words.items():
         tc = next((t_category for key in kywds if key in slug), None)
