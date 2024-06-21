@@ -129,7 +129,7 @@ class CollectionWbflHandler(WebflowHandler):
         for preview_item in data:
             preview_item_id = preview_item[self.key_id_name]
             template = preview_item.get('template')
-            if template == 'budapest' and preview_item[self.key_is_additional_name]:
+            if template == 'budapest' and preview_item.get(self.key_is_additional_name):
                 template = 'budapest_1'
 
             template_json[template] = {
@@ -149,6 +149,130 @@ class CollectionWbflHandler(WebflowHandler):
         except Exception as e:
             update_article_log(airtable_handler=self.airtable_handler, record_id=airtable_rec_id, msg=str(e))
             print(f"Update and publish failed: {str(e)}")
+
+
+class EnglishCollectionWbflHandler(CollectionWbflHandler):
+    def get_wbfl_field_data_params(self, data_template_key):
+        if self.type_category in RESUME_TYPES:
+            return {
+                "template-image": data_template_key['budapest']['url'],
+                "budapest-thumbnail-image": data_template_key['budapest']['thumbnail_url'],
+                "perth-thumbnail-image": data_template_key['perth']['thumbnail_url'],
+                "rotterdam-thumbnail-image": data_template_key['rotterdam']['thumbnail_url'],
+                "chicago-thumbnail-image": data_template_key['chicago']['thumbnail_url'],
+                "html-preview": """<script>
+             var url =
+               "https://resumedone.co/resume-html/"""+data_template_key['budapest'][self.key_id_name]+"""";
+             fetch(url)
+               .then((response) => response.text())
+               .then((data) => {
+                  document.getElementById("html-preview-content").innerHTML = data;
+                 scaleChild();
+               });
+           
+             function scaleChild() {
+                const parent = document.getElementById("parent-html");
+               const child = document.getElementById("html-preview-content");
+               const scaleFactor = parent.offsetWidth / child.offsetWidth;
+               child.style.transform = `scale(${scaleFactor})`;
+               child.style.transformOrigin = "top left";
+             }
+           
+             window.addEventListener("resize", scaleChild);
+           </script>""",
+                "show-article-popup": True,
+                "resume-popup-html": """<script>
+             document.addEventListener("DOMContentLoaded", function () {
+                var sv3Divs = document.querySelectorAll("#sv-3");
+               var boxImages = document.querySelectorAll("#box-images-thumbnail");
+           
+               //Please note that the Order of IDS should be Budapest , Perth , Rotterdam , Chicago 
+               
+               var IDS = [
+            '"""+data_template_key['budapest'][self.key_id_name]+""""',
+            '"""+data_template_key['perth'][self.key_id_name]+""""', 
+           '"""+data_template_key['rotterdam'][self.key_id_name]+""""',
+            '"""+data_template_key['chicago'][self.key_id_name]+""""'
+           ];
+           
+               IDS.forEach(function (html, index) {
+                  fetch(`https://resumedone.co/resume-html/${html}`)
+                   .then((response) => response.text())
+                   .then((data) => {
+                    HTMLVAR[index] = data;
+                   if (index === 0) {
+                      renderHTMLV2(index);
+                   }
+                 });
+               });
+           
+               function renderHTMLV2(template) {
+                  var elt3 = document.getElementById("html-preview-content-popup");
+                 elt3.style.backgroundColor = "white";
+                 elt3.innerHTML = HTMLVAR[template];
+                 scaleChildPopup(); 
+               }
+           
+               function scaleChildPopup() {
+                  const parentpopup = document.getElementById("parent-html-popup");
+                 const childpopup = document.getElementById("html-preview-content-popup");
+                 const scaleFactorpopup = parentpopup.offsetWidth / childpopup.offsetWidth;
+                 const limitedScaleFactorpopup = Math.min(scaleFactorpopup, 1);
+                 childpopup.style.transform = `scale(${limitedScaleFactorpopup})`;
+                 childpopup.style.transformOrigin = "top";
+                 parentpopup.style.height = childpopup.offsetHeight * limitedScaleFactorpopup + 'px';
+               }
+           
+               sv3Divs.forEach(function (div, index) {
+                  div.addEventListener("click", function () {
+                    renderHTMLV2(index);
+                 });
+               });
+           
+           
+               boxImages.forEach(function (key, index) {
+                  key.addEventListener("click", function () {
+                    renderHTMLV2(index);
+                 });
+               });
+           
+               window.addEventListener("resize", scaleChildPopup);
+           
+               const resumePreview = document.querySelector('#resume-preview.section.resume-preview');
+               const observer = new MutationObserver((mutationsList, observer) => {
+                  const displayChanged = mutationsList.some(mutation => mutation.attributeName === 'style');
+           
+                 if (displayChanged) {
+                    if (resumePreview.style.display === 'block') {
+                      scaleChildPopup();
+                     document.body.style.overflow = 'hidden';
+                   } else if (resumePreview.style.display === 'none') {
+                      renderHTMLV2(0);
+                     document.body.style.overflow = '';
+                   }
+                 }
+               });
+           
+               observer.observe(resumePreview, { attributes: true });
+           
+             });
+           </script>"""
+            }
+        elif self.type_category in COVER_LETTER_TYPES:
+
+            return {
+                "template-image": data_template_key['budapest']['url'],
+                "budapest-cover-letter-id": data_template_key['budapest'][self.key_id_name],
+                "budapest-cover-letter-thumbnail": data_template_key['budapest']['thumbnail_url'],
+                "perth-cover-letter-id": data_template_key['perth'][self.key_id_name],
+                "perth-cover-letter-thumbnail": data_template_key['perth']['thumbnail_url'],
+                "kiev-cover-letter-id": data_template_key['kiev'][self.key_id_name],
+                "kiev-cover-letter-thumbnail": data_template_key['kiev']['thumbnail_url'],
+                "montecarlo-cover-letter-id": data_template_key['montecarlo'][self.key_id_name],
+                "montecarlo-cover-letter-thumbnail": data_template_key['montecarlo']['thumbnail_url'],
+                "show-cover-letter-popup": True,
+            }
+        return {}
 
 
 def mark_article_preview_updated(airtable_handler: AirtableHandler, record_id: str):
