@@ -189,10 +189,10 @@ class EnglishCollectionWbflHandler(CollectionWbflHandler):
                //Please note that the Order of IDS should be Budapest , Perth , Rotterdam , Chicago 
                
                var IDS = [
-            '"""+data_template_key['budapest'][self.key_id_name]+""""',
-            '"""+data_template_key['perth'][self.key_id_name]+""""', 
-           '"""+data_template_key['rotterdam'][self.key_id_name]+""""',
-            '"""+data_template_key['chicago'][self.key_id_name]+""""'
+            '"""+data_template_key['budapest'][self.key_id_name]+"""',
+            '"""+data_template_key['perth'][self.key_id_name]+"""', 
+           '"""+data_template_key['rotterdam'][self.key_id_name]+"""',
+            '"""+data_template_key['chicago'][self.key_id_name]+"""'
            ];
            
                IDS.forEach(function (html, index) {
