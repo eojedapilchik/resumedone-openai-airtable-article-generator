@@ -2,7 +2,7 @@ import json
 import os
 
 from helpers.airtable_handler import AirtableHandler
-from helpers.webflow_handler import CollectionWbflHandler, update_article_log
+from helpers.webflow_handler import CollectionWbflHandler, EnglishCollectionWbflHandler, update_article_log
 from models.article import Article
 
 data_table = os.environ.get("TABLE_DATA")
@@ -21,12 +21,14 @@ class ArticlePreviewProcessor:
             wbf_params = article_detail.get('webflow parameters (from blog for webflow)')
             preview_data = article_detail.get('resume sample slider data')
             webflow_itm_id = article_detail.get('Webflow ID')
-            blog = article_detail.get('blog') #TODO:Update the update for english blog
+            blog = article_detail.get('blog') 
             del article_detail
             if webflow_itm_id is not None and preview_data is not None and wbf_params is not None:
                 webflow_params = json.loads(sanitize_for_json(wbf_params[0] if len(wbf_params)>0 else ""))
                 prevw_data = json.loads(sanitize_for_json(preview_data))
                 wbfl_handler = CollectionWbflHandler(webflow_params=webflow_params, type_category=type_category)
+                if blog == 'resume-example.com':
+                    wbfl_handler = EnglishCollectionWbflHandler(webflow_params=webflow_params, type_category=type_category)
                 wbfl_handler.update_preview(airtable_rec_id=article.record_id, wbfl_item_id=webflow_itm_id,
                                             data=prevw_data)
             else:
