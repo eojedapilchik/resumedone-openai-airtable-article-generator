@@ -11,7 +11,6 @@ class Blog(BaseModel):
     site_id: str
     blog_rec_id: str
     blog_name: str
-    blog_to_webflow_id: str
     language_id: str
     entry_level_kws: List[str]
     resume_example_kws: List[str]
@@ -21,7 +20,7 @@ class Blog(BaseModel):
     cl_language_kws: List[str]
     job_itw_kws: List[str]
     cover_letter_kws: List[str]
-    cv_collection: Union[BlogCollection, None] = None
-    cover_letter_collection: Union[BlogCollection, None] = None
-    job_search_collection: Union[BlogCollection, None] = None
+    resume_article_params: Union[BlogCollection, None] = None
+    cover_letter_params: Union[BlogCollection, None] = None
+    job_search_params: Union[BlogCollection, None] = None
 
