@@ -57,6 +57,7 @@ def get_file_handler(blog: Blog, category: str) -> JsonFileHandler:
 
 
 def update_list_article_in_airtable(blog: Blog, category: str):
+    process_webflow_item_importation(blog,category)
     file_container = get_file_handler(blog, category)
     if file_container.is_file_exist():
         collection_active = switch_collection(blog=blog, category=category)
@@ -91,7 +92,7 @@ def update_list_article_in_airtable(blog: Blog, category: str):
                         "fldnqhJgjcPzoLP6S": webflow_id,  # webflow id
                         "fld1uAosEiotY3H1u": f"{base_url}{slug}",  # webflow url
                         "fld1mAn4B5pAljLgP": slug,  # slug
-                        "fld4fQ1LNyG0BwJ2g": blog.blog_to_webflow_id,  # blog to webflow
+                        "fld4fQ1LNyG0BwJ2g": blog.blog_rec_id,  # blog to webflow
                     }
                     airtable_handler.create_record(fields)
                 webflow_item['imported_in_airtable'] = True
@@ -116,12 +117,12 @@ def remove_unused_keys(item: dict):
 
 
 def switch_collection(blog: Blog, category: str) -> Optional[BlogCollection]:
-    if category == 'cv' and blog.cv_collection:
-        return blog.cv_collection
-    elif category == 'cl' and blog.cover_letter_collection:
-        return blog.cover_letter_collection
-    elif category == 'job_search' and blog.job_search_collection:
-        return blog.job_search_collection
+    if category == 'cv' and blog.resume_article_params:
+        return blog.resume_article_params
+    elif category == 'cl' and blog.cover_letter_params:
+        return blog.cover_letter_params
+    elif category == 'job_search' and blog.job_search_params:
+        return blog.job_search_params
     return None
 
 
