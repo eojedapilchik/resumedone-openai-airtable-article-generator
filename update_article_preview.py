@@ -30,7 +30,7 @@ class ArticlePreviewProcessor:
                 if blog == 'resume-example.com':
                     wbfl_handler = EnglishCollectionWbflHandler(webflow_params=webflow_params, type_category=type_category)
                 wbfl_handler.update_preview(airtable_rec_id=article.record_id, wbfl_item_id=webflow_itm_id,
-                                            data=prevw_data)
+                                            data=prevw_data, airtable_job_name=article.job_name)
             else:
                 update_article_log(airtable_handler=self.airtable_handler, record_id=article.record_id,
                                msg=f"Icompleted data (Please check: webflowId, preview data, webflow params)")
