@@ -280,7 +280,7 @@ def mark_article_preview_updated(airtable_handler: AirtableHandler, record_id: s
     try:
         fields = {
             "fldkrvYybPj3hMYTP": "Html",
-            "fldtz9eZ9gK39737D": True
+            "fldMG98nGXmFepLX7": "Success"
         }
         airtable_handler.update_record(record_id, fields)
     except Exception as e:
