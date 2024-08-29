@@ -319,7 +319,7 @@ async def create_wbl_backup(background_tasks: BackgroundTasks,category: str, blo
 
 @app.post("/import-new-human-article/{category}")
 async def import_webflow_human_articles(background_tasks: BackgroundTasks,category: str, blog: Blog):
-    if blog.site_id and blog.blog_rec_id and blog.blog_name and category in ['cv', 'cl', 'job-search']:
+    if blog.site_id and blog.blog_rec_id and blog.blog_name and category in ['cv', 'cl', 'job_search']:
         background_tasks.add_task(update_list_article_in_airtable, blog, category)
         return {"status": "importing "+ category.upper() +" articles from " + blog.blog_name }
     else:
