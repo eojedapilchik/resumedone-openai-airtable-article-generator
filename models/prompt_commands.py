@@ -198,6 +198,13 @@ class ImagePromptCommand(PromptCommand):
         image_url = images_urls_list.pop(0) if len(images_urls_list) > 0 else ""
         article.image_urls = ",".join(images_urls_list) if len(images_urls_list) > 0 else ""
         image_url = image_url.strip() if image_url else ""
+        prefix_image_url = {'https://img.b2bpic.net/free-photo/':'', 'https://img.b2bpic.net/premium-photo/':'', '_':' ', '-':' ', '.jpg':'', '.png':''}
+        alt_text = image_url
+        for char, replacement in prefix_image_url.items():
+            alt_text = alt_text.replace(char, replacement)
+        alt_text = re.sub(r"\d", '', alt_text)
+        alt_text = alt_text.strip() if alt_text else ""
+        alt_text = alt_text.capitalize()
         extra_class = ""
         if article.type is not None and article.type == "Cover Letter":
             extra_class = "cover-letter-image"
@@ -205,7 +212,7 @@ class ImagePromptCommand(PromptCommand):
             prompt["response"] = (
                 f'\n<figure class="w-richtext-figure-type-image w-richtext-align-center" style="max-width:626px">'
                 f'    <div class="imagen {extra_class}">'
-                f'        <img src=\'{image_url}\'/>'
+                f'        <img src=\'{image_url}\' alt="{alt_text}"/>'
                 f'    </div>'
                 f'</figure>')
 
