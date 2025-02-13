@@ -20,7 +20,7 @@ def process_content(text_to_translate, image_url, record_id, airtable_handler):
 
     list_of_languages = [language['iso_code'] for language in language_list]
 
-    batch_size = len(list_of_languages) // 4
+    batch_size = len(list_of_languages) // 8
     batches = [list_of_languages[i:i + batch_size] for i in range(0, len(list_of_languages), batch_size)]
 
     is_error = False
@@ -74,11 +74,11 @@ def prepare_message(text_to_translate, image_url, list_of_languages):
             "role": "user",
             "content": [
                 {"type": "text",
-                 "text": f"Using the image provided as context, translate the text {text_to_translate} to the "
-                         f"following languages: {list_of_languages}. "
-                         f"and provide the response in JSON format and using the same keys "
-                         f"in the following languages list: {list_of_languages}. "
-                         f"Do not any other text to the response."
+                 "text":  f"""Using the provided image as context, translate the text '{text_to_translate}' into the following languages: {list_of_languages}. 
+                 Provide the response in JSON format, using the same keys as specified in the languages list.
+                 Important Instructions: 1. If the text contains constants, code elements, or HTML tags, do not translate these. Keep them unchanged.
+                 2. Maintain any special characters such as parentheses (), braces {{}}, brackets [], >>, <<, /,//,\\, . and similar symbols exactly as they appear. 
+                 3. Only translate the human-readable text while preserving the structure of the text. Do not include any additional text or commentary in the response."""
                  },
                 {
                     "type": "image_url",
