@@ -77,7 +77,7 @@ def prepare_message(text_to_translate, image_url, list_of_languages):
                  "text":  f"""Using the provided image as context, translate the text '{text_to_translate}' into the following languages: {list_of_languages}. 
                  Provide the response in JSON format, using the same keys as specified in the languages list.
                  Important Instructions: 1. If the text contains constants, code elements, or HTML tags, do not translate these. Keep them unchanged.
-                 2. Maintain any special characters such as parentheses (), braces {{}}, brackets [], >>, <<, /,//,\\, . and similar symbols exactly as they appear. 
+                 2. Maintain any special characters such as parentheses (), braces {{}}, brackets [], >>, <<, /, //, \, \\, ., *, ^, %, $, #, @, !, ~ and similar symbols exactly as they appear.
                  3. Only translate the human-readable text while preserving the structure of the text. Do not include any additional text or commentary in the response."""
                  },
                 {
