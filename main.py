@@ -277,7 +277,11 @@ async def get_translations(record_id: str, background_tasks: BackgroundTasks):
     if not content:
         return {"status": "error",
                 "message": "No article found"}
-    image_urls = content.get("fields").get("image")[0].get("thumbnails").get("full").get("url")
+    image = content.get("fields").get("image")
+    if not image:
+        return {"status": "error",
+                "message": "Image field is empty"}
+    image_urls = image[0].get("thumbnails").get("full").get("url")
     if not image_urls:
         return {"status": "error",
                 "message": "No image found"}
