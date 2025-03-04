@@ -267,13 +267,28 @@ async def get_campaigns():
 
 
 @app.get("/airtable/translations/{record_id}/")
-async def get_translations(record_id: str, background_tasks: BackgroundTasks):
+async def get_translations(record_id: str, background_tasks: BackgroundTasks, table_name: str = None):
     base_id = os.environ.get("BASE_ADMIN_ID")
-    table_id = os.environ.get("TABLE_CONTENT_ADMIN")
+    if table_name is None:
+        table_name = "Content"
+    tablesc_config = {
+        "Content": {
+            "table_id": os.environ.get("TABLE_CONTENT_ADMIN"),
+            "elapsed_time_fld": "fldorL0bJiNXElC3k",
+            "error_log_fld": "fldWrOfUF03hHjMls"
+        },
+        "Success Agency Content": {
+            "table_id": os.environ.get("SA_TABLE_CONTENT_ADMIN"),
+            "elapsed_time_fld": "flddK4xkGJfEAeOx5",
+            "error_log_fld": "fld1SOMzhO862zMKe"
+        }
+    }
+    selected_table_config = tablesc_config[table_name]
+    table_id = selected_table_config["table_id"]
     if record_id is None:
         return {"status": "missing record_id"}
     airtable_handler = AirtableHandler(table_id, base_id)
-    content = airtable_handler.get_record(record_id, "Content")
+    content = airtable_handler.get_record(record_id, table_name)
     if not content:
         return {"status": "error",
                 "message": "No article found"}
@@ -291,7 +306,7 @@ async def get_translations(record_id: str, background_tasks: BackgroundTasks):
                 "message": "No text found"}
     record_id = content.get("id")
 
-    background_tasks.add_task(process_content, text_to_translate, image_urls, record_id, airtable_handler)
+    background_tasks.add_task(process_content, text_to_translate, image_urls, record_id, airtable_handler, selected_table_config, table_name)
     return {"status": "processing, Results will be updated in Airtable soon",
             "article": record_id}
 

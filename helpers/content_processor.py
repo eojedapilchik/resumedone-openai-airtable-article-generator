@@ -5,13 +5,13 @@ import time
 from helpers.openai_handler import OpenAIHandler, OpenAIException
 from helpers.airtable_handler import AirtableHandler
 
-def process_content(text_to_translate, image_url, record_id, airtable_handler):
+def process_content(text_to_translate, image_url, record_id, airtable_handler, selected_table_config, table_name):
     # list_of_languages = os.getenv("LIST_OF_LANGUAGES").split(", ")
     start_time = time.time()
     model_vision = os.getenv("OPENAI_VISION_MODEL", "gpt-4-vision-preview")
     openai_handler = OpenAIHandler(model_vision)
 
-    fields_list = airtable_handler.get_table_schema("Content").fields
+    fields_list = airtable_handler.get_table_schema(table_name).fields
     if not fields_list:
         print("No fields found in Content table")
         return
@@ -19,8 +19,8 @@ def process_content(text_to_translate, image_url, record_id, airtable_handler):
     language_list = extract_language_fields(fields_list)
 
     list_of_languages = [language['iso_code'] for language in language_list]
-
-    batch_size = len(list_of_languages) // 8
+    max_in_bach = 8 if len(list_of_languages) > 32 else 4 if len(list_of_languages) > 16 else 2
+    batch_size = len(list_of_languages) // max_in_bach
     batches = [list_of_languages[i:i + batch_size] for i in range(0, len(list_of_languages), batch_size)]
 
     is_error = False
@@ -38,7 +38,7 @@ def process_content(text_to_translate, image_url, record_id, airtable_handler):
 
     elapsed_time = time.time() - start_time
     aggregated_data["elapsed_time"] = str(elapsed_time)
-    update_airtable_record(record_id, aggregated_data, airtable_handler, is_error, language_list)
+    update_airtable_record(record_id, aggregated_data, airtable_handler, is_error, language_list, selected_table_config)
     print(f"Elapsed time: {elapsed_time}")
 
 def process_batch(batch, text_to_translate, image_url, openai_handler):
@@ -103,16 +103,16 @@ def process_openai_response(response):
 
 
 def update_airtable_record(record_id: str, data: dict, airtable_handler: AirtableHandler, is_error: bool = False,
-                           language_list=None):
+                           language_list=None, selected_table_config: dict = None):
     if language_list is None:
         language_list = []
     fields = {}
     if is_error:
-        fields["fldWrOfUF03hHjMls"]= str(data.get("error"))
+        fields[selected_table_config.get('error_log_fld')]= str(data.get("error"))
     for language in language_list:
         iso_code = language['iso_code']
         field_id = language['field_id']
         fields[field_id] = data.get(iso_code, "")
-    fields["fldorL0bJiNXElC3k"] = data.get("elapsed_time", "")
+    fields[selected_table_config.get("elapsed_time_fld")] = data.get("elapsed_time", "")
     airtable_handler.update_record(record_id, fields)
 
