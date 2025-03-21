@@ -269,25 +269,36 @@ async def get_campaigns():
 @app.get("/airtable/translations/{record_id}/")
 async def get_translations(record_id: str, background_tasks: BackgroundTasks, table_name: str = None):
     base_id = os.environ.get("BASE_ADMIN_ID")
+    if table_name == "Content_EMAIL_TRANSLATION":
+        base_id = os.environ.get("EMAIL_TRANSLATION_BASE")
     if table_name is None:
         table_name = "Content"
     tablesc_config = {
         "Content": {
             "table_id": os.environ.get("TABLE_CONTENT_ADMIN"),
             "elapsed_time_fld": "fldorL0bJiNXElC3k",
-            "error_log_fld": "fldWrOfUF03hHjMls"
+            "error_log_fld": "fldWrOfUF03hHjMls",
+            "personal_access_token": None
+        },
+        "Content_EMAIL_TRANSLATION": {
+            "table_id": os.environ.get("EMAIL_TRANSLATION_TABLE"),
+            "elapsed_time_fld": "fldz0InWNRldWFc5s",
+            "error_log_fld": "fldQj75RIKZ6LH6vS",
+            "personal_access_token": os.environ.get("EMAIL_TRANSLATION_TKN")
         },
         "Success Agency Content": {
             "table_id": os.environ.get("SA_TABLE_CONTENT_ADMIN"),
             "elapsed_time_fld": "flddK4xkGJfEAeOx5",
-            "error_log_fld": "fld1SOMzhO862zMKe"
+            "error_log_fld": "fld1SOMzhO862zMKe",
+            "personal_access_token": None
         }
     }
     selected_table_config = tablesc_config[table_name]
+    table_name = table_name.replace("_EMAIL_TRANSLATION", "")
     table_id = selected_table_config["table_id"]
     if record_id is None:
         return {"status": "missing record_id"}
-    airtable_handler = AirtableHandler(table_id, base_id)
+    airtable_handler = AirtableHandler(table_id, base_id, selected_table_config["personal_access_token"])
     content = airtable_handler.get_record(record_id, table_name)
     if not content:
         return {"status": "error",
