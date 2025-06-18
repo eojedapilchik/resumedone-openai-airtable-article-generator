@@ -19,8 +19,8 @@ def process_content(text_to_translate, image_url, record_id, airtable_handler, s
     language_list = extract_language_fields(fields_list)
 
     list_of_languages = [language['iso_code'] for language in language_list]
-    max_in_bach = 8 if len(list_of_languages) > 32 else 4 if len(list_of_languages) > 16 else 2
-    batch_size = len(list_of_languages) // max_in_bach
+    max_in_batch = 32 if len(text_to_translate) > 400 else 8 if len(list_of_languages) > 32 else 4 if len(list_of_languages) > 16 else 2
+    batch_size = len(list_of_languages) // max_in_batch
     batches = [list_of_languages[i:i + batch_size] for i in range(0, len(list_of_languages), batch_size)]
 
     is_error = False
