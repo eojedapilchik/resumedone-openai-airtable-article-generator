@@ -239,6 +239,17 @@ async def target_article_generation(background_tasks: BackgroundTasks, record_id
         return {"status": "missing data"}
 
 
+@app.get("/pull-resume-previews-data/{record_id}")
+async def target_article_generation(background_tasks: BackgroundTasks, record_id: str, task_id: str, job_name: str,
+                                    first_retry_after: int):
+    if record_id and job_name and task_id:
+        article = Article(record_id=record_id, job_name=job_name)
+        background_tasks.add_task(process_getting_task_response, article, task_id, first_retry_after, "resume_generation")
+        return {"status": "getting resume sample images for this job title: " + job_name}
+    else:
+        return {"status": "missing data"}
+
+
 @app.get("/health/")
 async def health_check():
     return {"status": "alive"}
@@ -677,12 +688,29 @@ def get_new_job_title(base_source: str='DB1'):
     return found_job_title
     
     
-def process_getting_task_response(article: Article, task_id: str, first_retry_after: int = 0):
+def process_getting_task_response(article: Article, task_id: str, first_retry_after: int = 0, purpose: str = 'article'):
     url = f"https://api.resumedone-staging.com/v2/task-processor/{task_id}"
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
-    airtable_handler = AirtableHandler(data_table)
+    airtable_config = {
+        "article": {
+            "table": data_table,
+            "status_field": "fldcTiDTr8BBUNqkk",
+            "log_field": "fldnEZ9uHN8mNJPA8",
+            "data_field": "fld9lCuvcwKAKEbnz",
+        },
+        "resume_generation": {
+            "table": "tbl5pHqMcUVW88EFK",
+            "status_field": "fldO4mJdd1PCud0yZ",
+            "log_field": "fldqlaUN262EFtqVq",
+            "data_field": "fld4TYq0QLcyGPTbO",
+        }
+    }
+    airtable_handler = AirtableHandler(airtable_config.get(purpose).get("table"))
+    status_field = airtable_config.get(purpose).get("status_field")
+    log_field = airtable_config.get(purpose).get("log_field")
+    data_field = airtable_config.get(purpose).get("data_field")
     airtable_handler.update_record(article.record_id, {
-        "fldcTiDTr8BBUNqkk": 'Processing',
+        status_field: 'Processing',
     })
     time.sleep(first_retry_after)
     for i in range(1, 30):
@@ -694,42 +722,56 @@ def process_getting_task_response(article: Article, task_id: str, first_retry_af
                     log_message = f'{i}. resume sample for {article.job_name} is loading\n Data: \n{result}'
                     print(log_message)
                     airtable_handler.update_record(article.record_id, {
-                        "fldnEZ9uHN8mNJPA8": log_message,
+                        log_field: log_message,
                     })
                     if result.get('status') == 500:
-                        airtable_handler.update_record(article.record_id, {
-                            "fldcTiDTr8BBUNqkk": 'Error',
-                            "fldPYVmRtilBrDYbC": False
-                        })
+                        data = {
+                            status_field: 'Error'
+                        }
+                        if purpose == 'article':
+                            data['fldPYVmRtilBrDYbC'] = False
+                            
+                        airtable_handler.update_record(article.record_id, data)
                         break
                     time.sleep(10)
                     continue
                 elif isinstance(result, list) and len(result) == 5:
                     log_message = f'{i}. resume sample for {article.job_name} processed'
                     print(log_message)
-                    airtable_handler.update_record(article.record_id, {
-                        "fld9lCuvcwKAKEbnz": result,
-                        "fldnEZ9uHN8mNJPA8": log_message,
-                        "fldcTiDTr8BBUNqkk": 'Completed',
-                    })
+                    data = {
+                        data_field: result,
+                        log_field: log_message,
+                        status_field: 'Completed',
+                    }
+                    
+                    if purpose == 'resume_generation':
+                        attachments = [{'url': preview["url"]} for preview in result]
+                        data['fldQWH9pAq7wUrqA0'] = attachments
+                        data['fldlzpJKqpvjUYIgE'] = "\n".join([f"{preview['template']}: {preview.get('downloadResumeLink') or preview['url']}" for preview in result])
+
+                    airtable_handler.update_record(article.record_id, data)
                     break
                 else:
                     log_message = f"{i}. Resume data incomplete \n Data: \n{result}"
-                    airtable_handler.update_record(article.record_id, {
-                        "fldnEZ9uHN8mNJPA8": log_message,
-                        "fldcTiDTr8BBUNqkk": 'Incomplete',
-                        "fldPYVmRtilBrDYbC": False
-                    })
+                    data = {
+                        log_field: log_message,
+                        status_field: 'Incomplete'
+                    }
+                    if purpose == 'article':
+                        data['fldPYVmRtilBrDYbC'] = False
+                    airtable_handler.update_record(article.record_id, data)
                     break
             response.raise_for_status()
         except Exception as e:
             error_message = f"An error occurred when getting resume sample data: {e}"
             print(error_message)
-            airtable_handler.update_record(article.record_id, {
-                "fldnEZ9uHN8mNJPA8": error_message,
-                "fldcTiDTr8BBUNqkk": 'Error',
-                "fldPYVmRtilBrDYbC": False
-            })
+            data = {
+                log_field: error_message,
+                status_field: 'Error'
+            }
+            if purpose == 'article':
+                data['fldPYVmRtilBrDYbC'] = False
+            airtable_handler.update_record(article.record_id, data)
             continue
 
 
