@@ -44,16 +44,23 @@ def process_content(text_to_translate, image_url, record_id, airtable_handler, s
 def process_batch(batch, text_to_translate, image_url, openai_handler):
 
     message = prepare_message(text_to_translate, image_url, batch)
-
-    try:
-        response = openai_handler.prompt_with_image_input(message, image_url)
-        print(f"Batch response: {response}")
-        data = process_openai_response(response)
-        return data, False
-    except OpenAIException as e:
-        msg = f"Error in batch processing OpenAI: {str(e)}\r\n batch: {batch}"
-        print(msg)
-        return {"error": msg}, True
+    retry_count = 3
+    retry_delay = 5
+    for i in range(retry_count):
+        try:
+            response = openai_handler.prompt_with_image_input(message, image_url)
+            print(f"Batch response: {response}")
+            data = process_openai_response(response)
+            return data, False
+        except OpenAIException as e:
+            msg = f"Error in batch processing OpenAI (retry {i+1} of {retry_count}): {str(e)}\r\n batch: {batch}"
+            print(msg)
+            if i < retry_count - 1:
+                time.sleep(retry_delay)
+                continue
+            else:
+                break
+    return {"error": msg}, True
 
 
 def extract_language_fields(fields_list):
