@@ -289,7 +289,7 @@ async def get_translations(record_id: str, background_tasks: BackgroundTasks, ta
             "table_id": os.environ.get("TABLE_CONTENT_ADMIN"),
             "elapsed_time_fld": "fldorL0bJiNXElC3k",
             "error_log_fld": "fldWrOfUF03hHjMls",
-            "personal_access_token": None
+            "personal_access_token": os.environ.get("EMAIL_TRANSLATION_TKN")
         },
         "Content_EMAIL_TRANSLATION": {
             "table_id": os.environ.get("EMAIL_TRANSLATION_TABLE"),
