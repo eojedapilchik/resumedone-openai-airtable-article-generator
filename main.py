@@ -240,11 +240,25 @@ async def target_article_generation(background_tasks: BackgroundTasks, record_id
 
 
 @app.get("/pull-resume-previews-data/{record_id}")
-async def target_article_generation(background_tasks: BackgroundTasks, record_id: str, task_id: str, job_name: str,
-                                    first_retry_after: int):
+async def target_preview_generation(background_tasks: BackgroundTasks, record_id: str, task_id: str, job_name: str,
+                                    first_retry_after: int, is_single_resume: str="false"):
+    """
+    Pulls resume preview data for a specific job title.
+
+    Args:
+        background_tasks (BackgroundTasks): The background task handler.
+        record_id (str): The record ID of the article.
+        task_id (str): The task ID of the article.
+        job_name (str): The job name of the article.
+        first_retry_after (int): The number of seconds to wait before retrying the task.
+        is_single_resume (str): Whether to generate a single resume preview or not. Defaults to "false".
+
+    Returns:
+        dict: A dictionary containing the status of the task.
+    """
     if record_id and job_name and task_id:
         article = Article(record_id=record_id, job_name=job_name)
-        background_tasks.add_task(process_getting_task_response, article, task_id, first_retry_after, "resume_generation")
+        background_tasks.add_task(process_getting_task_response, article, task_id, first_retry_after, "resume_generation", is_single_resume)
         return {"status": "getting resume sample images for this job title: " + job_name}
     else:
         return {"status": "missing data"}
@@ -688,7 +702,7 @@ def get_new_job_title(base_source: str='DB1'):
     return found_job_title
     
     
-def process_getting_task_response(article: Article, task_id: str, first_retry_after: int = 0, purpose: str = 'article'):
+def process_getting_task_response(article: Article, task_id: str, first_retry_after: int = 0, purpose: str = 'article', is_single_resume: str = "false"):
     url = f"https://api.resumedone-staging.com/v2/task-processor/{task_id}"
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
     airtable_config = {
@@ -713,6 +727,9 @@ def process_getting_task_response(article: Article, task_id: str, first_retry_af
         status_field: 'Processing',
     })
     time.sleep(first_retry_after)
+    expected_resume_count = 5
+    if is_single_resume.lower() == "true":
+        expected_resume_count = 1
     for i in range(1, 30):
         try:
             response = requests.get(url, headers=headers)
@@ -735,7 +752,7 @@ def process_getting_task_response(article: Article, task_id: str, first_retry_af
                         break
                     time.sleep(10)
                     continue
-                elif isinstance(result, list) and len(result) == 5:
+                elif isinstance(result, list) and len(result) == expected_resume_count:
                     log_message = f'{i}. resume sample for {article.job_name} processed'
                     print(log_message)
                     data = {
