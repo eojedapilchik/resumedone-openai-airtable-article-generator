@@ -241,7 +241,7 @@ async def target_article_generation(background_tasks: BackgroundTasks, record_id
 
 @app.get("/pull-resume-previews-data/{record_id}")
 async def target_preview_generation(background_tasks: BackgroundTasks, record_id: str, task_id: str, job_name: str,
-                                    first_retry_after: int, is_single_resume: str="false"):
+                                    first_retry_after: int, is_single_preview: str="false", category: str = "resume-job"):
     """
     Pulls resume preview data for a specific job title.
 
@@ -258,7 +258,7 @@ async def target_preview_generation(background_tasks: BackgroundTasks, record_id
     """
     if record_id and job_name and task_id:
         article = Article(record_id=record_id, job_name=job_name)
-        background_tasks.add_task(process_getting_task_response, article, task_id, first_retry_after, "resume_generation", is_single_resume)
+        background_tasks.add_task(process_getting_task_response, article, task_id, first_retry_after, "preview_generation", is_single_preview, category)
         return {"status": "getting resume sample images for this job title: " + job_name}
     else:
         return {"status": "missing data"}
@@ -700,9 +700,9 @@ def get_new_job_title(base_source: str='DB1'):
         print("No article found")
         return None
     return found_job_title
-    
-    
-def process_getting_task_response(article: Article, task_id: str, first_retry_after: int = 0, purpose: str = 'article', is_single_resume: str = "false"):
+
+
+def process_getting_task_response(article: Article, task_id: str, first_retry_after: int = 0, purpose: str = 'article', is_single_preview: str = "false", category: str = "resume-job"):
     url = f"https://api.resumedone-staging.com/v2/task-processor/{task_id}"
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
     airtable_config = {
@@ -728,7 +728,7 @@ def process_getting_task_response(article: Article, task_id: str, first_retry_af
     })
     time.sleep(first_retry_after)
     expected_resume_count = 5
-    if is_single_resume.lower() == "true":
+    if is_single_preview.lower() == "true":
         expected_resume_count = 1
     for i in range(1, 30):
         try:
@@ -760,11 +760,11 @@ def process_getting_task_response(article: Article, task_id: str, first_retry_af
                         log_field: log_message,
                         status_field: 'Completed',
                     }
-                    
-                    if purpose == 'resume_generation':
+
+                    if purpose == 'preview_generation':
                         attachments = [{'url': preview["url"]} for preview in result]
                         data['fldQWH9pAq7wUrqA0'] = attachments
-                        data['fldlzpJKqpvjUYIgE'] = "\n".join([f"{preview['template']}: {preview.get('downloadResumeLink') or preview['url']}" for preview in result])
+                        data['fldlzpJKqpvjUYIgE'] = "\n".join([f"{preview['template']}: {preview.get('downloadResumeLink' if category not in ['coverletter-job', 'coverletter-language'] else 'downloadCoverLetterLink') or preview['url']}" for preview in result])
 
                     airtable_handler.update_record(article.record_id, data)
                     break
