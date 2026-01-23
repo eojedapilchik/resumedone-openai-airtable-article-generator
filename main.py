@@ -712,7 +712,7 @@ def process_getting_task_response(article: Article, task_id: str, first_retry_af
             "log_field": "fldnEZ9uHN8mNJPA8",
             "data_field": "fld9lCuvcwKAKEbnz",
         },
-        "resume_generation": {
+        "preview_generation": {
             "table": "tbl5pHqMcUVW88EFK",
             "status_field": "fldO4mJdd1PCud0yZ",
             "log_field": "fldqlaUN262EFtqVq",
