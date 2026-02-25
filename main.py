@@ -270,7 +270,7 @@ async def health_check():
 
 
 @app.post("/review/{conversation_id}/language/{language}/")
-async def create_review_conversation(background_tasks: BackgroundTasks, conversation_id: str, language: str, company: str):
+async def create_review_conversation(background_tasks: BackgroundTasks, conversation_id: str, language: str, company: str = None):
     # validate language is a string
     if not language or not isinstance(language, str):
         return {"status": "invalid language"}
