@@ -270,13 +270,13 @@ async def health_check():
 
 
 @app.post("/review/{conversation_id}/language/{language}/")
-async def create_review_conversation(background_tasks: BackgroundTasks, conversation_id: str, language: str):
+async def create_review_conversation(background_tasks: BackgroundTasks, conversation_id: str, language: str, company: str = None):
     # validate language is a string
     if not language or not isinstance(language, str):
         return {"status": "invalid language"}
     if not conversation_id:
         return {"status": "invalid conversation_id"}
-    background_tasks.add_task(create_review_conversation_task, conversation_id, language)
+    background_tasks.add_task(create_review_conversation_task, conversation_id, language, company)
     return {"status": "processing review for Frontapp conversation"}
 
 
@@ -542,7 +542,7 @@ def get_instantly_handler():
     return InstantlyHandler(instantly_api_key)
 
 
-def create_review_conversation_task(conversation_id: str, language: str) -> bool:
+def create_review_conversation_task(conversation_id: str, language: str, company: str) -> bool:
     """
     Create a review for a given conversation in FrontApp.
 
@@ -554,7 +554,13 @@ def create_review_conversation_task(conversation_id: str, language: str) -> bool
     - bool: True if the review was created successfully, False otherwise.
     """
     global last_index
-    front_app = FrontAppHandler(os.environ.get("FRONT_API_TOKEN"))
+    
+    env_mapping = {
+        "great_ponton": "FRONT_API_TOKEN",
+        "ozuara": "FRONT_API_OZUARA_TOKEN"
+    }
+    
+    front_app = FrontAppHandler(os.environ.get(env_mapping.get(company, "FRONT_API_TOKEN")))
     prompts = get_review_prompts(language)
     openai_handler = OpenAIHandler()
     # Generate a unique random index
