@@ -3,7 +3,7 @@ import os
 import time
 import random
 import re
-from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, Query
+from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, Query, Header
 from dotenv import load_dotenv
 import requests
 from helpers.article_processor import ArticleProcessor
@@ -18,14 +18,16 @@ from helpers.lemlist_handler import LemlistHandler
 from helpers.instantlyai_handler import InstantlyHandler
 from helpers.prompts_config import prompts_cfg
 from helpers.content_processor import process_content
+from helpers.rocketchat_handler import notif_rocketchat
 from categorize_articles import update_category
-from typing import Dict, List
+from typing import Dict, List, Optional
 from models.blog import Blog
 from models.experience import Experience
 from models.instantly_lead import Lead
 from fastapi.middleware.cors import CORSMiddleware
 from models.lemlist_webhook import WebhookData
 from models.instantly_webhook import InstantlyWebhookData
+from models.publish_articles_webhook import PublishArticlesWebhook
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
@@ -419,6 +421,58 @@ async def process_webhook(data: InstantlyWebhookData, background_tasks: Backgrou
 #     body = await request.json()
 #     print("Received data:", body)
 #     return {"status": "Success. Data is being processed in the background"}
+
+
+def process_publish_articles(payload: PublishArticlesWebhook, blog: str, collection: str):
+    article_count = len(payload.data.articles)
+    article_ids = ", ".join(a.id for a in payload.data.articles)
+    notif_rocketchat(message=f"[publish-articles] New request received: {article_count} article(s) for blog={blog}, collection={collection}\nArticle IDs: {article_ids}\nPayload: {payload.model_dump_json()}")
+    airtable_handler = AirtableHandler(data_table)
+    for article in payload.data.articles:
+        fields = {
+            "fld7vn74uF0ZxQhXe": article.content_html,
+            "fldus7pUQ61eM1ymY": 0,
+            "fldsnne20dP9s0nUz": "To Review",
+            "fldTk3wrPUWrx0AjP": article.created_at,
+            "fldLgR2ao2astuLbs": article.content_markdown,
+            "fldpnyajPwaBXM6Zb": "Success",
+            "fldIvmfoPfkJbYDcy": article.meta_description,
+            "fld4v3esUgKDDH9aI": article.title,
+            "fldK0YcZgm3gV4I2l": "",
+            "fldyLdscjWRQONJoV": article.id,
+            "fld1mAn4B5pAljLgP": article.slug,
+            "fldHYGVGork1UuCps": (article.slug or "").replace("-", " ").capitalize(),
+            "fldfoXIUinA9zVkBx": blog,
+            "fldlMpB6SUtr99Oq9": collection.replace("-", " ").title(),
+        }
+        try:
+            airtable_handler.create_record(fields)
+        except Exception as e:
+            error_msg = f"[publish-articles] error for article {article.id} ({article.title}): {e}"
+            print(error_msg)
+            notif_rocketchat(message=error_msg)
+
+
+@app.post("/publish-articles/")
+async def publish_articles(
+    background_tasks: BackgroundTasks,
+    payload: PublishArticlesWebhook,
+    authorization: Optional[str] = Header(None),
+    blog: str = Query(default="resume-example.com"),
+    collection: str = Query(default="resume-example"),
+):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    expected_token = os.environ.get("PUBLISH_ARTICLES_BEARER_TOKEN")
+    if not expected_token:
+        raise HTTPException(status_code=500, detail="Server misconfiguration: missing token")
+    if not authorization.startswith("Bearer ") or authorization[7:] != expected_token:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if payload.event_type != "publish_articles":
+        raise HTTPException(status_code=400, detail=f"Unsupported event_type: {payload.event_type}")
+
+    background_tasks.add_task(process_publish_articles, payload, blog, collection)
+    return {"status": "Success. Data is being processed in the background"}
 
 
 @app.post("/webhook/email_replied/")
