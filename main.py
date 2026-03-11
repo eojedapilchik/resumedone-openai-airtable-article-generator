@@ -445,6 +445,9 @@ def process_publish_articles(payload: PublishArticlesWebhook, blog: str, collect
             "fldfoXIUinA9zVkBx": blog,
             "fldlMpB6SUtr99Oq9": collection.replace("-", " ").title(),
         }
+        if blog == "resume-example.com":
+            fields["fldE2YQXCz5uEbGBn"] = ["recAc6l4IwYruBl81"]
+            fields["fld4fQ1LNyG0BwJ2g"] = ["recMP5XVjaioKD9lI"]
         try:
             airtable_handler.create_record(fields)
         except Exception as e:
