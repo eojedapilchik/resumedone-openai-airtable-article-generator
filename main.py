@@ -443,7 +443,7 @@ def process_publish_articles(payload: PublishArticlesWebhook, blog: str, collect
             "fld1mAn4B5pAljLgP": article.slug,
             "fldHYGVGork1UuCps": (article.slug or "").replace("-", " ").capitalize(),
             "fldfoXIUinA9zVkBx": blog,
-            "fldlMpB6SUtr99Oq9": collection.replace("-", " ").title(),
+            "fldlMpB6SUtr99Oq9": "Cover Letter" if "cover-letter" in article.slug else "Resume Example",
         }
         if blog == "resume-example.com":
             fields["fldE2YQXCz5uEbGBn"] = ["recAc6l4IwYruBl81"]
