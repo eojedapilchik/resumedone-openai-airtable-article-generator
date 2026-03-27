@@ -76,26 +76,19 @@ def extract_language_fields(fields_list):
     ]
 
 def prepare_message(text_to_translate, image_url, list_of_languages):
-    return [
-        {
-            "role": "user",
-            "content": [
-                {"type": "text",
-                 "text":  f"""Using the provided image as context, translate the text '{text_to_translate}' into the following languages: {list_of_languages}. 
+    context_hint = "Using the provided image as context, translate" if image_url else "Translate"
+    text_content = {
+        "type": "text",
+        "text": f"""{context_hint} the text '{text_to_translate}' into the following languages: {list_of_languages}.
                  Provide the response in JSON format, using the same keys as specified in the languages list.
                  Important Instructions: 1. If the text contains constants, code elements, or HTML tags, do not translate these. Keep them unchanged.
                  2. Maintain any special characters such as parentheses (), braces {{}}, brackets [], >>, <<, /, //, \, \\, ., *, ^, %, $, #, @, !, ~ and similar symbols exactly as they appear.
                  3. Only translate the human-readable text while preserving the structure of the text. Do not include any additional text or commentary in the response."""
-                 },
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": image_url,
-                    },
-                },
-            ],
-        }
-    ]
+    }
+    content = [text_content]
+    if image_url:
+        content.append({"type": "image_url", "image_url": {"url": image_url}})
+    return [{"role": "user", "content": content}]
 
 def process_openai_response(response):
     match = re.search(r'{.*}', response, re.DOTALL)
@@ -111,8 +104,11 @@ def process_openai_response(response):
 
 def process_content_missing(text_to_translate, image_url, record_id, record_fields, airtable_handler, selected_table_config, table_name):
     start_time = time.time()
-    model_vision = os.getenv("OPENAI_VISION_MODEL", "gpt-4-vision-preview")
-    openai_handler = OpenAIHandler(model_vision)
+    if image_url:
+        model = os.getenv("OPENAI_VISION_MODEL", "gpt-4-vision-preview")
+    else:
+        model = os.getenv("OPENAI_ENGINE", "gpt-3.5-turbo")
+    openai_handler = OpenAIHandler(model)
 
     fields_list = airtable_handler.get_table_schema(table_name).fields
     if not fields_list:
@@ -133,7 +129,7 @@ def process_content_missing(text_to_translate, image_url, record_id, record_fiel
 
     list_of_iso = [lang['iso_code'] for lang in missing_languages]
     max_in_batch = 32 if len(text_to_translate) > 400 else 8 if len(list_of_iso) > 32 else 4 if len(list_of_iso) > 16 else 2
-    batch_size = len(list_of_iso) // max_in_batch
+    batch_size = max(1, len(list_of_iso) // max_in_batch)
     batches = [list_of_iso[i:i + batch_size] for i in range(0, len(list_of_iso), batch_size)]
 
     is_error = False

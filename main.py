@@ -383,19 +383,17 @@ async def complete_missing_translations(record_id: str, background_tasks: Backgr
     content = airtable_handler.get_record(record_id, table_name)
     if not content:
         return {"status": "error", "message": "No record found"}
-    image = content.get("fields").get("image")
-    if not image:
-        return {"status": "error", "message": "Image field is empty"}
-    image_urls = image[0].get("thumbnails").get("full").get("url")
-    if not image_urls:
-        return {"status": "error", "message": "No image found"}
     text_to_translate = content.get("fields").get("en - English")
     if not text_to_translate:
         return {"status": "error", "message": "No text found"}
+    image = content.get("fields").get("image")
+    image_url = None
+    if image:
+        image_url = image[0].get("thumbnails", {}).get("full", {}).get("url")
     record_id = content.get("id")
     record_fields = content.get("fields", {})
 
-    background_tasks.add_task(process_content_missing, text_to_translate, image_urls, record_id, record_fields, airtable_handler, selected_table_config, table_name)
+    background_tasks.add_task(process_content_missing, text_to_translate, image_url, record_id, record_fields, airtable_handler, selected_table_config, table_name)
     return {"status": "processing missing translations, results will be updated in Airtable soon",
             "article": record_id}
 
