@@ -17,7 +17,7 @@ from helpers.frontapp_handler import FrontAppHandler, FrontAppError
 from helpers.lemlist_handler import LemlistHandler
 from helpers.instantlyai_handler import InstantlyHandler
 from helpers.prompts_config import prompts_cfg
-from helpers.content_processor import process_content
+from helpers.content_processor import process_content, process_content_missing
 from helpers.rocketchat_handler import notif_rocketchat
 from categorize_articles import update_category
 from typing import Dict, List, Optional
@@ -346,6 +346,57 @@ async def get_translations(record_id: str, background_tasks: BackgroundTasks, ta
 
     background_tasks.add_task(process_content, text_to_translate, image_urls, record_id, airtable_handler, selected_table_config, table_name)
     return {"status": "processing, Results will be updated in Airtable soon",
+            "article": record_id}
+
+
+@app.get("/airtable/translations/{record_id}/complete-missing/")
+async def complete_missing_translations(record_id: str, background_tasks: BackgroundTasks, table_name: str = None):
+    base_id = os.environ.get("BASE_ADMIN_ID")
+    if table_name == "Content_EMAIL_TRANSLATION":
+        base_id = os.environ.get("EMAIL_TRANSLATION_BASE")
+    if table_name is None:
+        table_name = "Content"
+    tablesc_config = {
+        "Content": {
+            "table_id": os.environ.get("TABLE_CONTENT_ADMIN"),
+            "elapsed_time_fld": "fldorL0bJiNXElC3k",
+            "error_log_fld": "fldWrOfUF03hHjMls",
+            "personal_access_token": os.environ.get("EMAIL_TRANSLATION_TKN")
+        },
+        "Content_EMAIL_TRANSLATION": {
+            "table_id": os.environ.get("EMAIL_TRANSLATION_TABLE"),
+            "elapsed_time_fld": "fldz0InWNRldWFc5s",
+            "error_log_fld": "fldQj75RIKZ6LH6vS",
+            "personal_access_token": os.environ.get("EMAIL_TRANSLATION_TKN")
+        },
+        "Success Agency Content": {
+            "table_id": os.environ.get("SA_TABLE_CONTENT_ADMIN"),
+            "elapsed_time_fld": "flddK4xkGJfEAeOx5",
+            "error_log_fld": "fld1SOMzhO862zMKe",
+            "personal_access_token": None
+        }
+    }
+    selected_table_config = tablesc_config[table_name]
+    table_name = table_name.replace("_EMAIL_TRANSLATION", "")
+    table_id = selected_table_config["table_id"]
+    airtable_handler = AirtableHandler(table_id, base_id, selected_table_config["personal_access_token"])
+    content = airtable_handler.get_record(record_id, table_name)
+    if not content:
+        return {"status": "error", "message": "No record found"}
+    image = content.get("fields").get("image")
+    if not image:
+        return {"status": "error", "message": "Image field is empty"}
+    image_urls = image[0].get("thumbnails").get("full").get("url")
+    if not image_urls:
+        return {"status": "error", "message": "No image found"}
+    text_to_translate = content.get("fields").get("en - English")
+    if not text_to_translate:
+        return {"status": "error", "message": "No text found"}
+    record_id = content.get("id")
+    record_fields = content.get("fields", {})
+
+    background_tasks.add_task(process_content_missing, text_to_translate, image_urls, record_id, record_fields, airtable_handler, selected_table_config, table_name)
+    return {"status": "processing missing translations, results will be updated in Airtable soon",
             "article": record_id}
 
 

@@ -109,6 +109,51 @@ def process_openai_response(response):
         return {"error": msg}
 
 
+def process_content_missing(text_to_translate, image_url, record_id, record_fields, airtable_handler, selected_table_config, table_name):
+    start_time = time.time()
+    model_vision = os.getenv("OPENAI_VISION_MODEL", "gpt-4-vision-preview")
+    openai_handler = OpenAIHandler(model_vision)
+
+    fields_list = airtable_handler.get_table_schema(table_name).fields
+    if not fields_list:
+        print("No fields found in Content table")
+        return
+
+    language_list = extract_language_fields(fields_list)
+
+    # Filter to only languages with blank/missing field values
+    missing_languages = [
+        lang for lang in language_list
+        if not record_fields.get(lang['field_name']) and not record_fields.get(lang['field_id'])
+    ]
+
+    if not missing_languages:
+        print("No missing translations found, nothing to do.")
+        return
+
+    list_of_iso = [lang['iso_code'] for lang in missing_languages]
+    max_in_batch = 32 if len(text_to_translate) > 400 else 8 if len(list_of_iso) > 32 else 4 if len(list_of_iso) > 16 else 2
+    batch_size = len(list_of_iso) // max_in_batch
+    batches = [list_of_iso[i:i + batch_size] for i in range(0, len(list_of_iso), batch_size)]
+
+    is_error = False
+    aggregated_data = {}
+    for index, batch in enumerate(batches):
+        print(f"Processing missing content batch {index}...{batch}")
+        data, error = process_batch(batch, text_to_translate, image_url, openai_handler)
+        if error:
+            is_error = True
+            aggregated_data.update(data)
+            break
+        aggregated_data.update(data)
+        time.sleep(5)
+
+    elapsed_time = time.time() - start_time
+    aggregated_data["elapsed_time"] = str(elapsed_time)
+    update_airtable_record(record_id, aggregated_data, airtable_handler, is_error, missing_languages, selected_table_config)
+    print(f"Elapsed time: {elapsed_time}")
+
+
 def update_airtable_record(record_id: str, data: dict, airtable_handler: AirtableHandler, is_error: bool = False,
                            language_list=None, selected_table_config: dict = None):
     if language_list is None:
