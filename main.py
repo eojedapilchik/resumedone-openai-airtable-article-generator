@@ -663,7 +663,12 @@ def create_review_conversation_task(conversation_id: str, language: str, company
     
     env_mapping = {
         "great_ponton": "FRONT_API_TOKEN",
-        "ozuara": "FRONT_API_OZUARA_TOKEN"
+        "ozuara": "FRONT_API_OZUARA_TOKEN",
+        "ponton_media": "FRONT_API_PONTON_MEDIA_TOKEN",
+        "talentree": "FRONT_API_TALENTREE_TOKEN",
+        "khushi": "FRONT_API_KHUSHI_TOKEN",
+        "fef": "FRONT_API_FEF_TOKEN",
+        "kukario": "FRONT_API_KUKARIO_TOKEN"
     }
     
     front_app = FrontAppHandler(os.environ.get(env_mapping.get(company, "FRONT_API_TOKEN")))
