@@ -88,7 +88,7 @@ class CollectionWbflHandler(WebflowHandler):
     def update_preview(self, airtable_rec_id: str, wbfl_item_id: str, data: list, airtable_job_name: str):
         data_template_key = self.restructure_previews_data(data)
         preview_keys = self.get_wbfl_field_data_params(data_template_key)
-        preview_keys['job-title'] = airtable_job_name
+        # preview_keys['job-title'] = airtable_job_name
         field_data = {}
         for key, value in preview_keys.items():
             new_key = self.collection_detail.get(key) or key
