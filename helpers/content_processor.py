@@ -64,7 +64,7 @@ def process_batch(batch, text_to_translate, image_url, openai_handler):
 
 
 def extract_language_fields(fields_list):
-    language_pattern = re.compile(r'^([a-z]{2}(?:-[a-zA-Z]{2})?) - [A-Za-z ]+$')
+    language_pattern = re.compile(r'^([a-z]{2}(?:-[a-zA-Z]{2,4})?) - [A-Za-z ()]+$')
     return [
         {
             'iso_code': language_pattern.match(field.name).group(1),
