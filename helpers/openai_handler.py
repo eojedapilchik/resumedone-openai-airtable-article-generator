@@ -62,10 +62,20 @@ class OpenAIHandler:
 
         try:
             print(f"using engine: {self.engine}")
-            response = openai.ChatCompletion.create(model=self.engine,
-                                                    messages=message,
-                                                    max_tokens=max_tokens,
-                                                    temperature=temperature)
+            params = {
+                "model": self.engine,
+                "messages": message,
+                "max_completion_tokens": max_tokens,
+                "temperature": temperature,
+            }
+            try:
+                response = openai.ChatCompletion.create(**params)
+            except openai.error.InvalidRequestError as e:
+                # Newer models (e.g. reasoning models) only accept the default temperature
+                if "temperature" not in str(e):
+                    raise
+                params.pop("temperature")
+                response = openai.ChatCompletion.create(**params)
             return response.choices[0]["message"]["content"].strip()
         except Exception as e:
             print("Open AI Error: " + str(e))
